@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential make cmake ninja-build pkg-config \
       python3 python3-pip python3-venv python3-dev pipx \
       default-jdk maven gradle \
-      golang-go \
       php-cli composer \
       ruby ruby-dev \
       clang clang-tools clang-tidy clang-format lld llvm \
@@ -54,6 +53,16 @@ RUN set -eu; \
         || echo "[coldvault] radare2 install skipped — continuing without r2"; \
       rm -rf /tmp/radare2; \
     fi
+
+# Go toolchain (from upstream — Debian's golang-go is too old for modern
+# go.mod directives like 'go 1.25.0' emitted by recent gosec/govulncheck).
+# Any go>=1.21 parses the new format; toolchain auto-download (GOTOOLCHAIN)
+# fetches the exact minor when a project requires it.
+ARG GO_VERSION=1.23.4
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz \
+ && tar -C /usr/local -xzf /tmp/go.tar.gz \
+ && rm /tmp/go.tar.gz
+ENV PATH=/usr/local/go/bin:$PATH
 
 # Node.js LTS (via NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
@@ -110,8 +119,8 @@ RUN npm install -g --omit=dev \
       npm-audit-html \
       better-npm-audit \
       snyk \
-      njsscan \
-    || true  # njsscan is pip; fallback below
+    || true
+# njsscan is a pip package — installed via pipx (not on npm registry)
 RUN pipx install njsscan
 
 # Go tools
