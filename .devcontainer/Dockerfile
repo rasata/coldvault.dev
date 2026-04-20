@@ -34,22 +34,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       bsdmainutils vim nano tmux htop tree less man-db locales sudo \
   && rm -rf /var/lib/apt/lists/*
 
-# radare2
-# Prefer distro package for stability; fallback to pinned upstream release if unavailable.
+# radare2 — try apt with a real install candidate, fall back to source build.
+# 'apt-cache show' is not enough: bookworm indexes radare2 metadata but has no
+# binary candidate, so apt-get install fails. We check 'apt-cache policy' for a
+# non-"(none)" candidate instead. Failure of the source build is non-fatal:
+# radare2 is optional for most audit flows.
 ARG R2_VERSION=5.9.8
-RUN set -eux; \
+RUN set -eu; \
     apt-get update; \
-    if apt-cache show radare2 >/dev/null 2>&1; then \
+    if apt-cache policy radare2 2>/dev/null | grep -qE '^  Candidate: [^(]'; then \
       apt-get install -y --no-install-recommends radare2; \
       rm -rf /var/lib/apt/lists/*; \
     else \
+      apt-get install -y --no-install-recommends git make gcc g++ pkg-config; \
       rm -rf /var/lib/apt/lists/*; \
-      curl -fL --retry 5 --retry-delay 2 -o /tmp/r2.tar.xz \
-        "https://github.com/radareorg/radare2/releases/download/${R2_VERSION}/radare2-${R2_VERSION}-linux-x86_64.tar.xz"; \
-      mkdir -p /opt/radare2; \
-      tar -xJf /tmp/r2.tar.xz -C /opt/radare2 --strip-components=1; \
-      ln -sf /opt/radare2/bin/r2 /usr/local/bin/r2; \
-      rm -f /tmp/r2.tar.xz; \
+      ( git clone --depth=1 --branch "${R2_VERSION}" https://github.com/radareorg/radare2.git /tmp/radare2 \
+          || git clone --depth=1 https://github.com/radareorg/radare2.git /tmp/radare2 ) \
+        && ( cd /tmp/radare2 && sys/install.sh ) \
+        || echo "[coldvault] radare2 install skipped — continuing without r2"; \
+      rm -rf /tmp/radare2; \
     fi
 
 # Node.js LTS (via NodeSource)
