@@ -215,8 +215,12 @@ RUN pipx install oletools
 RUN pipx install binwalk
 # malwoverview
 RUN pipx install malwoverview || true
-# pefile / peframe
-RUN pipx install pefile
+# pefile — Python library (no CLI), used by capa/oletools. pipx refuses it
+# because it exposes no apps; install into system Python instead. Needs
+# --break-system-packages on bookworm (PEP 668); this is a dedicated
+# devcontainer, so writing to the system site-packages is acceptable.
+RUN python3 -m pip install --no-cache-dir --break-system-packages pefile \
+    || echo "[coldvault] pefile install skipped"
 # Awesome YARA rules (embedded ruleset)
 RUN mkdir -p /opt/yara-rules \
  && git clone --depth=1 https://github.com/Yara-Rules/rules.git /opt/yara-rules/yara-rules \
