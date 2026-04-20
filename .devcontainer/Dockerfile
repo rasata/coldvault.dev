@@ -86,8 +86,8 @@ RUN pipx install detect-secrets \
 RUN pipx install semgrep
 # Bandit (Python)
 RUN pipx install bandit[toml]
-# Dlint, pyre (Python typing/security)
-RUN pipx install dlint
+# Dlint, pyre (Python typing/security) — optional, upstream can break builds
+RUN pipx install dlint || echo "[coldvault] dlint install skipped"
 # Safety (Python dep vuln)
 RUN pipx install safety
 # pip-audit
