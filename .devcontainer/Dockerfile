@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # coldvault.dev — ZONOVA RESEARCH
 # Security Audit Devcontainer
 # Debian-based image pre-equipped with a comprehensive set of
