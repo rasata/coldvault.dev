@@ -34,14 +34,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       bsdmainutils vim nano tmux htop tree less man-db locales sudo \
   && rm -rf /var/lib/apt/lists/*
 
-# radare2 (pinned release — apt package absent on bookworm)
+# radare2
+# Prefer distro package for stability; fallback to pinned upstream release if unavailable.
 ARG R2_VERSION=5.9.8
-RUN curl -fsSL -o /tmp/r2.tar.xz \
-      "https://github.com/radareorg/radare2/releases/download/${R2_VERSION}/radare2-${R2_VERSION}-linux-x86_64.tar.xz" \
- && mkdir -p /opt/radare2 \
- && tar -xJf /tmp/r2.tar.xz -C /opt/radare2 --strip-components=1 \
- && ln -s /opt/radare2/bin/r2 /usr/local/bin/r2 \
- && rm -f /tmp/r2.tar.xz
+RUN set -eux; \
+    apt-get update; \
+    if apt-cache show radare2 >/dev/null 2>&1; then \
+      apt-get install -y --no-install-recommends radare2; \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      rm -rf /var/lib/apt/lists/*; \
+      curl -fL --retry 5 --retry-delay 2 -o /tmp/r2.tar.xz \
+        "https://github.com/radareorg/radare2/releases/download/${R2_VERSION}/radare2-${R2_VERSION}-linux-x86_64.tar.xz"; \
+      mkdir -p /opt/radare2; \
+      tar -xJf /tmp/r2.tar.xz -C /opt/radare2 --strip-components=1; \
+      ln -sf /opt/radare2/bin/r2 /usr/local/bin/r2; \
+      rm -f /tmp/r2.tar.xz; \
+    fi
 
 # Node.js LTS (via NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
