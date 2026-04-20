@@ -1,0 +1,33 @@
+# Audit reports — never committed, may contain fingerprints of sensitive data
+reports/*
+!reports/.gitkeep
+
+# Caches
+.cache/
+.semgrep/
+.trivy/
+.syft/
+.grype/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Tool state
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.log
+
+# Claude transient artifacts
+.claude/settings.local.json
+.claude/.local/
+
+# Never commit target internals — it is a submodule; keep only the pointer
+target/**/node_modules/
+target/**/__pycache__/
+target/**/.venv/
+target/**/dist/
+target/**/build/

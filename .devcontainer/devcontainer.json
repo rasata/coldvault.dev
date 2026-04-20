@@ -1,0 +1,56 @@
+{
+  "name": "Coldvault — ZONOVA RESEARCH Security Audit Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": false
+    }
+  },
+  "runArgs": [
+    "--security-opt=no-new-privileges",
+    "--cap-drop=ALL",
+    "--cap-add=CHOWN",
+    "--cap-add=DAC_OVERRIDE",
+    "--cap-add=FOWNER",
+    "--cap-add=SETGID",
+    "--cap-add=SETUID"
+  ],
+  "containerEnv": {
+    "AUDIT_HOME": "/workspaces",
+    "SEMGREP_RULES_DIR": "/opt/semgrep-rules",
+    "YARA_RULES_DIR": "/opt/yara-rules",
+    "TARGET_DIR": "target"
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck",
+        "streetsidesoftware.code-spell-checker",
+        "semgrep.semgrep"
+      ],
+      "settings": {
+        "files.watcherExclude": {
+          "**/target/**": true,
+          "**/reports/**": true,
+          "**/node_modules/**": true
+        }
+      }
+    }
+  },
+  "mounts": [
+    "source=coldvault-cache,target=/home/vscode/.cache,type=volume"
+  ],
+  "forwardPorts": [],
+  "portsAttributes": {}
+}

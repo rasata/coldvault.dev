@@ -1,0 +1,130 @@
+MIT License — ZONOVA RESEARCH variant
+Project: Coldvault (coldvault.dev)
+
+Copyright (c) 2026 ZONOVA RESEARCH
+
+Permission is hereby granted, free of charge, to any person or organization
+obtaining a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to
+whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice, this permission notice, and the attribution line
+"Powered by ZONOVA RESEARCH" shall be included in all copies or substantial
+portions of the Software, including any derivative works, documentation, or
+distributions.
+
+--------------------------------------------------------------------------------
+ATTRIBUTION REQUIREMENT
+--------------------------------------------------------------------------------
+
+Redistributions in source, binary, or documentation form must visibly credit
+"ZONOVA RESEARCH — https://zonova.io" in the project README, About dialog,
+or equivalent public-facing notice.
+
+--------------------------------------------------------------------------------
+NO WARRANTY — COMPLETE DISCLAIMER OF RESPONSIBILITY
+--------------------------------------------------------------------------------
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+NON-INFRINGEMENT, TITLE, ACCURACY, COMPLETENESS, RELIABILITY, AVAILABILITY,
+SECURITY, OR ABSENCE OF VULNERABILITIES, ERRORS, OR MALICIOUS CODE.
+
+ZONOVA RESEARCH, ITS OFFICERS, EMPLOYEES, AGENTS, CONTRIBUTORS, AND ANY THIRD
+PARTY WHOSE TOOLS OR RULESETS ARE BUNDLED OR REFERENCED BY THIS SOFTWARE
+(including but not limited to Semgrep, Snyk, Trivy, Grype, Syft, OSV-Scanner,
+OWASP Dependency-Check, YARA, YARA-X, ClamAV, capa, Gitleaks, Trufflehog,
+ggshield, Bandit, njsscan, gosec, staticcheck, cppcheck, flawfinder,
+Psalm, PHPStan, Brakeman, bundler-audit, tfsec, terrascan, Checkov, Hadolint,
+Dockle, Kubesec, kube-score, Anthropic's Claude Code CLI, and the skill
+material adapted from trailofbits/skills and anthropics/claude-code-security-
+review) ARE COLLECTIVELY REFERRED TO AS THE "PROVIDERS".
+
+THE PROVIDERS SHALL HAVE NO RESPONSIBILITY, LIABILITY, OR OBLIGATION OF ANY
+NATURE WHATSOEVER — WHETHER IN CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+LIABILITY, OR OTHERWISE — ARISING FROM OR IN CONNECTION WITH:
+
+  1. The use of, inability to use, or reliance upon this Software.
+  2. Any findings, reports, scores, summaries, or recommendations produced
+     by this Software, which MAY CONTAIN FALSE POSITIVES, FALSE NEGATIVES,
+     OUTDATED ADVICE, OR OMIT ACTUAL VULNERABILITIES. Users MUST validate
+     every finding independently before acting upon it.
+  3. Any damage, loss, compromise, or exfiltration of data or credentials
+     occurring on any system — whether the user's host, a cloud instance,
+     a GitHub Codespace, a CI runner, or a third party's system — whether
+     caused by this Software, by its dependencies, by the target code under
+     audit, or by any interaction between them.
+  4. Any legal liability arising from the user's audit of third-party code,
+     including but not limited to claims of unauthorized access, copyright
+     infringement, trade-secret misappropriation, breach of contract, or
+     violation of computer-fraud statutes in any jurisdiction.
+  5. Any security incident, breach, ransomware, supply-chain compromise, or
+     malware infection — regardless of whether this Software scanned the
+     affected code, failed to flag the threat, or was otherwise involved.
+  6. Any failure of the bundled PROVIDERS to detect, classify, or accurately
+     describe a vulnerability, defect, or malicious pattern.
+
+IN NO EVENT SHALL THE PROVIDERS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES —
+INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF DATA, LOSS OF GOODWILL,
+BUSINESS INTERRUPTION, OR COST OF SUBSTITUTE SERVICES — HOWEVER CAUSED AND
+UNDER ANY THEORY OF LIABILITY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES. THIS LIMITATION APPLIES TO THE FULLEST EXTENT PERMITTED BY
+APPLICABLE LAW.
+
+--------------------------------------------------------------------------------
+USER RESPONSIBILITIES AND INDEMNIFICATION
+--------------------------------------------------------------------------------
+
+By using this Software you agree that:
+
+  (a) You are solely responsible for ensuring that you have all necessary
+      rights, permissions, and legal authorizations to audit, scan, analyse,
+      clone, or otherwise process any third-party code you point this
+      Software at (the "target").
+
+  (b) You are solely responsible for securing the environment in which you
+      run this Software, including but not limited to GitHub Codespaces,
+      local machines, cloud VMs, and CI runners.
+
+  (c) You will NOT use this Software for offensive operations, unauthorized
+      intrusion, or any activity prohibited by applicable law.
+
+  (d) You will INDEMNIFY, DEFEND, AND HOLD HARMLESS the PROVIDERS from and
+      against any and all claims, damages, liabilities, losses, costs, and
+      expenses (including reasonable attorneys' fees) arising from or
+      related to your use of this Software or any content, target, or
+      action associated with such use.
+
+--------------------------------------------------------------------------------
+RESEARCH & RESPONSIBLE-USE NOTICE
+--------------------------------------------------------------------------------
+
+This project is intended for defensive security research, static analysis of
+untrusted code, and educational use. The maintainers do not condone offensive
+use of the tooling bundled herein. Users are solely responsible for complying
+with all applicable laws and for obtaining authorization before auditing
+third-party code they do not own.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY LICENSES
+--------------------------------------------------------------------------------
+
+This Software bundles, installs, or references third-party open-source tools
+and rulesets, each governed by its own license. Nothing in this LICENSE
+grants rights in those third-party works beyond what their own licenses
+permit. The user is responsible for reviewing and complying with the licenses
+of all third-party components.
+
+--------------------------------------------------------------------------------
+SEVERABILITY
+--------------------------------------------------------------------------------
+
+If any provision of this LICENSE is held to be unenforceable or invalid, that
+provision shall be limited or eliminated to the minimum extent necessary, and
+the remaining provisions shall remain in full force and effect.
+
+END OF LICENSE.
