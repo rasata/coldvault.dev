@@ -4,7 +4,7 @@
 # static analysis, SCA, SAST, secrets, malware, container, IaC
 # and binary auditing tools. No code from target/ is ever executed.
 
-FROM mcr.microsoft.com/devcontainers/base:bookworm
+FROM mcr.microsoft.com/devcontainers/base:debian-12
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH=amd64
