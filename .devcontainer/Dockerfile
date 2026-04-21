@@ -8,6 +8,7 @@
 # No code from target/ is ever executed.
 
 FROM golang:1.23.4-bookworm AS go_toolchain
+FROM aquasec/trivy:latest AS trivy_bin
 
 FROM mcr.microsoft.com/devcontainers/base:debian-12
 
@@ -36,6 +37,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # which may be unreachable in restricted CI/build networks).
 COPY --from=go_toolchain /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:$PATH
+
+# Direct pipx binaries to a path already on PATH so tools are accessible
+# system-wide without needing user-specific .local/bin entries.
+ENV PIPX_BIN_DIR=/usr/local/bin
 
 # Node.js LTS (via NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
@@ -66,7 +71,8 @@ RUN pipx install semgrep
 RUN pipx install bandit[toml]
 
 # Core Go security tools
-ENV GOPATH=/usr/local/go-tools PATH=$GOPATH/bin:$PATH
+ENV GOPATH=/usr/local/go-tools
+ENV PATH=/usr/local/go-tools/bin:$PATH
 RUN mkdir -p "$GOPATH" && \
     GO111MODULE=on go install github.com/securego/gosec/v2/cmd/gosec@latest && \
     GO111MODULE=on go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -75,10 +81,8 @@ RUN mkdir -p "$GOPATH" && \
 # 4. Core SCA / Supply-chain
 # ---------------------------------------------------------------------------
 # Trivy — SCA, IaC, container, and SBOM in a single tool
-RUN curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg \
- && echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb bookworm main" > /etc/apt/sources.list.d/trivy.list \
- && apt-get update && apt-get install -y --no-install-recommends trivy \
- && rm -rf /var/lib/apt/lists/*
+# Copied from the official image to avoid dependency on aquasecurity.github.io
+COPY --from=trivy_bin /usr/local/bin/trivy /usr/local/bin/trivy
 
 # OSV-Scanner — fast lockfile-based SCA
 RUN OSV_VERSION=1.9.1 \
