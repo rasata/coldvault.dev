@@ -15,9 +15,9 @@
 #   sast      — njsscan, dlint, safety, pip-audit, cfn-lint, sqlfluff,
 #               eslint + security plugins, retire, snyk,
 #               staticcheck, errcheck, gocritic
-#   sca       — grype, syft, dependency-check, cyclonedx-bom, cdxgen
+#   sca       — grype, syft, dependency-check (requires java group), cyclonedx-bom, cdxgen
 #   iac       — tfsec, terrascan, checkov, kube-score, kubesec, dockle
-#   malware   — capa, oletools, binwalk, malwoverview, pefile, clamav
+#   malware   — capa, oletools, binwalk, malwoverview, pefile
 #   rust      — Rust toolchain + cargo-audit, cargo-deny, cargo-geiger,
 #               cargo-outdated, yara-x-cli
 #   java      — default-jdk, maven, gradle
@@ -38,6 +38,37 @@ if [[ ${#GROUPS[@]} -eq 0 ]]; then
   GROUPS=(secrets sast sca iac malware rust java php ruby cpp reverse)
 fi
 
+# ── runtime environment ────────────────────────────────────────────────────
+# When running as a non-root user (e.g. the `vscode` devcontainer user),
+# redirect package-manager installs to user-writable paths so no sudo is
+# needed for pipx, npm -g, or go install.
+# apt_install and binary downloads that genuinely need root still use sudo.
+
+if [[ "$(id -u)" == "0" ]]; then
+  LOCAL_BIN=/usr/local/bin
+  GOINSTALL_GOPATH="${GOPATH:-/usr/local/go-tools}"
+else
+  LOCAL_BIN="$HOME/.local/bin"
+  mkdir -p "$LOCAL_BIN"
+  # Override the system-wide PIPX_BIN_DIR set in the Dockerfile so pipx
+  # writes to a directory the current user owns.
+  export PIPX_BIN_DIR="$LOCAL_BIN"
+  # npm global prefix
+  export NPM_CONFIG_PREFIX="$HOME/.npm-global"
+  mkdir -p "$NPM_CONFIG_PREFIX/bin"
+  # go install destination
+  GOINSTALL_GOPATH="$HOME/go"
+  mkdir -p "$GOINSTALL_GOPATH/bin"
+  # Expose the new bins to this script session
+  export PATH="$LOCAL_BIN:$NPM_CONFIG_PREFIX/bin:$GOINSTALL_GOPATH/bin:$PATH"
+  say "Non-root mode — installing to user-local paths (no sudo required for pipx/npm/go)."
+  say "  binaries  → $LOCAL_BIN"
+  say "  npm bins  → $NPM_CONFIG_PREFIX/bin"
+  say "  go bins   → $GOINSTALL_GOPATH/bin"
+  say "Persist on PATH by adding to your shell profile:"
+  say "  export PATH=\"\$HOME/.local/bin:\$HOME/.npm-global/bin:\$HOME/go/bin:\$PATH\""
+fi
+
 # ── helpers ────────────────────────────────────────────────────────────────
 
 apt_install() {
@@ -56,7 +87,6 @@ pipx_install() {
       ok "$pkg already installed via pipx"
       continue
     fi
-
     pipx install "$pkg" || warn "pipx install $pkg failed (non-fatal)"
   done
 }
@@ -67,7 +97,8 @@ npm_g() {
 
 go_install() {
   for mod in "$@"; do
-    GO111MODULE=on go install "$mod" || warn "go install $mod skipped"
+    GO111MODULE=on GOPATH="$GOINSTALL_GOPATH" go install "$mod" \
+      || warn "go install $mod skipped"
   done
 }
 
@@ -77,14 +108,20 @@ cargo_install() {
   done
 }
 
+# Download a single binary release to LOCAL_BIN (no sudo needed when non-root).
+bin_download() {
+  local url="$1" name="$2"
+  curl -fsSL "$url" -o "$LOCAL_BIN/$name" && chmod +x "$LOCAL_BIN/$name"
+}
+
 # ── groups ─────────────────────────────────────────────────────────────────
 
 install_secrets() {
   say "Group: secrets"
-  # trufflehog
+  # trufflehog — installer writes to LOCAL_BIN (user-writable when non-root)
   if ! command -v trufflehog &>/dev/null; then
     curl -fsSL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
-      | sudo sh -s -- -b /usr/local/bin
+      | sh -s -- -b "$LOCAL_BIN"
     ok "trufflehog"
   fi
   # ggshield
@@ -96,7 +133,7 @@ install_sast() {
   say "Group: sast"
   # Python extras
   pipx_install njsscan dlint safety pip-audit cfn-lint sqlfluff
-  # JS/TS audit tooling
+  # JS/TS audit tooling — npm prefix already set to user-local when non-root
   npm_g eslint \
         @microsoft/eslint-formatter-sarif \
         eslint-plugin-security \
@@ -107,7 +144,7 @@ install_sast() {
         better-npm-audit \
         snyk
   ok "eslint + security plugins, retire, snyk"
-  # Extra Go analysis tools
+  # Extra Go analysis tools — installs to GOINSTALL_GOPATH
   go_install \
     honnef.co/go/tools/cmd/staticcheck@latest \
     github.com/kisielk/errcheck@latest \
@@ -117,31 +154,39 @@ install_sast() {
 
 install_sca() {
   say "Group: sca"
-  # Grype
+  # Note: dependency-check requires a Java runtime.
+  # Install the 'java' group first if it is not already present:
+  #   bash .devcontainer/install-optional-tools.sh java sca
+  # Grype — installer honours -b flag; LOCAL_BIN is user-writable when non-root
   if ! command -v grype &>/dev/null; then
     curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
-      | sudo sh -s -- -b /usr/local/bin
+      | sh -s -- -b "$LOCAL_BIN"
     ok "grype"
   fi
   # Syft
   if ! command -v syft &>/dev/null; then
     curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-      | sudo sh -s -- -b /usr/local/bin
+      | sh -s -- -b "$LOCAL_BIN"
     ok "syft"
   fi
   # CycloneDX
   pipx_install cyclonedx-bom
   npm_g @cyclonedx/cyclonedx-npm @cyclonedx/cdxgen
   ok "cyclonedx-bom, cdxgen"
-  # OWASP Dependency-Check
+  # OWASP Dependency-Check (requires Java — install 'java' group first)
   if ! command -v dependency-check &>/dev/null; then
     DC_VERSION=10.0.4
-    curl -fsSL "https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip" \
-      -o /tmp/dc.zip
-    sudo unzip -q /tmp/dc.zip -d /opt/
-    sudo ln -sf /opt/dependency-check/bin/dependency-check.sh /usr/local/bin/dependency-check
-    rm /tmp/dc.zip
-    ok "dependency-check ${DC_VERSION}"
+    DC_ZIP="/tmp/dc-${DC_VERSION}.zip"
+    DC_DIR="$HOME/.local/opt/dependency-check"
+    DC_BIN="$LOCAL_BIN/dependency-check"
+    curl -fsSL \
+      "https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip" \
+      -o "$DC_ZIP"
+    mkdir -p "$HOME/.local/opt"
+    unzip -q "$DC_ZIP" -d "$HOME/.local/opt/"
+    ln -sf "$DC_DIR/bin/dependency-check.sh" "$DC_BIN"
+    rm "$DC_ZIP"
+    ok "dependency-check ${DC_VERSION} → $DC_BIN"
   fi
 }
 
@@ -150,10 +195,9 @@ install_iac() {
   # tfsec
   if ! command -v tfsec &>/dev/null; then
     TFSEC_VERSION=1.28.14
-    sudo curl -fsSL \
+    bin_download \
       "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" \
-      -o /usr/local/bin/tfsec
-    sudo chmod +x /usr/local/bin/tfsec
+      tfsec
     ok "tfsec ${TFSEC_VERSION}"
   fi
   # terrascan
@@ -161,7 +205,7 @@ install_iac() {
     TS_VERSION=1.19.9
     curl -fsSL \
       "https://github.com/tenable/terrascan/releases/download/v${TS_VERSION}/terrascan_${TS_VERSION}_Linux_x86_64.tar.gz" \
-      | sudo tar -xz -C /usr/local/bin terrascan
+      | tar -xz -C "$LOCAL_BIN" terrascan
     ok "terrascan ${TS_VERSION}"
   fi
   # checkov
@@ -172,13 +216,14 @@ install_iac() {
     KS_VERSION=1.18.0
     curl -fsSL \
       "https://github.com/zegl/kube-score/releases/download/v${KS_VERSION}/kube-score_${KS_VERSION}_linux_amd64.tar.gz" \
-      | sudo tar -xz -C /usr/local/bin kube-score
+      | tar -xz -C "$LOCAL_BIN" kube-score
     ok "kube-score ${KS_VERSION}"
   fi
   # kubesec
   if ! command -v kubesec &>/dev/null; then
-    curl -fsSL https://github.com/controlplaneio/kubesec/releases/latest/download/kubesec_linux_amd64.tar.gz \
-      | sudo tar -xz -C /usr/local/bin kubesec
+    curl -fsSL \
+      https://github.com/controlplaneio/kubesec/releases/latest/download/kubesec_linux_amd64.tar.gz \
+      | tar -xz -C "$LOCAL_BIN" kubesec
     ok "kubesec"
   fi
   # dockle
@@ -186,24 +231,22 @@ install_iac() {
     DOCKLE_VERSION=0.4.14
     curl -fsSL \
       "https://github.com/goodwithtech/dockle/releases/download/v${DOCKLE_VERSION}/dockle_${DOCKLE_VERSION}_Linux-64bit.tar.gz" \
-      | sudo tar -xz -C /usr/local/bin dockle
+      | tar -xz -C "$LOCAL_BIN" dockle
     ok "dockle ${DOCKLE_VERSION}"
   fi
 }
 
 install_malware() {
   say "Group: malware"
+  # capa, oletools, binwalk — pipx writes to PIPX_BIN_DIR (user-local when non-root)
   pipx_install flare-capa oletools binwalk
   pipx install malwoverview || warn "malwoverview install skipped"
-  python3 -m pip install --no-cache-dir --break-system-packages pefile \
-    || warn "pefile install skipped"
-  ok "capa, oletools, binwalk, pefile"
-  # clamav
-  apt_install clamav clamav-freshclam
-  say "Refreshing ClamAV signatures…"
-  sudo systemctl stop clamav-freshclam 2>/dev/null || true
-  sudo freshclam --quiet || warn "ClamAV signature refresh failed — retry with: sudo freshclam"
-  ok "clamav"
+  # pefile is a library (no CLI) needed by capa and oletools.
+  # Inject it into both pipx environments so it is available without sudo
+  # and without touching system site-packages.
+  pipx inject flare-capa pefile || warn "pefile inject into capa skipped"
+  pipx inject oletools pefile   || warn "pefile inject into oletools skipped"
+  ok "capa, oletools (+ pefile), binwalk"
 }
 
 install_rust() {
@@ -232,9 +275,11 @@ install_java() {
 install_php() {
   say "Group: php"
   apt_install php-cli composer
-  COMPOSER_HOME=/usr/local/composer
+  # COMPOSER_HOME must be exported and passed through sudo so composer writes
+  # to the intended directory instead of root's home.
+  export COMPOSER_HOME=/usr/local/composer
   sudo mkdir -p "$COMPOSER_HOME"
-  sudo composer global require --no-interaction \
+  sudo env "COMPOSER_HOME=$COMPOSER_HOME" composer global require --no-interaction \
     vimeo/psalm phpstan/phpstan enlightn/security-checker \
     || warn "Some PHP tools skipped"
   ok "php-cli, composer, psalm, phpstan"
@@ -255,21 +300,24 @@ install_cpp() {
 
 install_reverse() {
   say "Group: reverse"
-  apt_install gdb strace ltrace
-  # radare2 — try apt first, fall back to source build
+  # radare2 — check apt candidacy while package lists are still present
+  # (before apt_install cleans them), then fall back to a source build.
   if ! command -v r2 &>/dev/null; then
     R2_VERSION=5.9.8
+    sudo apt-get update -q
     if apt-cache policy radare2 2>/dev/null | grep -qE '^  Candidate: [^(]'; then
       apt_install radare2
     else
-      ( git clone --depth=1 --branch "${R2_VERSION}" https://github.com/radareorg/radare2.git /tmp/radare2 \
+      ( git clone --depth=1 --branch "${R2_VERSION}" \
+            https://github.com/radareorg/radare2.git /tmp/radare2 \
           || git clone --depth=1 https://github.com/radareorg/radare2.git /tmp/radare2 ) \
-        && ( cd /tmp/radare2 && sys/install.sh ) \
+        && ( cd /tmp/radare2 && sudo sys/install.sh ) \
         || warn "radare2 source build failed — continuing without r2"
       rm -rf /tmp/radare2
     fi
     ok "radare2"
   fi
+  apt_install gdb strace ltrace
   ok "gdb, strace, ltrace"
 }
 

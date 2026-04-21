@@ -398,15 +398,26 @@ bash .devcontainer/install-optional-tools.sh rust
 bash .devcontainer/install-optional-tools.sh sca iac
 ```
 
+When run as a non-root user (the default `vscode` devcontainer user), the
+installer automatically redirects `pipx`, `npm -g`, and `go install` outputs
+to user-writable paths (`~/.local/bin`, `~/.npm-global/bin`, `~/go/bin`) — no
+`sudo` required for those operations. Only `apt-get` and system-level package
+operations still use `sudo`.
+
+> **Note:** Add the user paths to your shell profile to make them permanent:
+> ```bash
+> export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/go/bin:$PATH"
+> ```
+
 ### Available groups
 
 | Group     | Tools installed                                                                      |
 |-----------|--------------------------------------------------------------------------------------|
 | `secrets` | trufflehog, ggshield                                                                 |
 | `sast`    | njsscan, dlint, safety, pip-audit, cfn-lint, sqlfluff, eslint + security plugins, retire, snyk, staticcheck, errcheck, gocritic |
-| `sca`     | grype, syft, dependency-check, cyclonedx-bom, cdxgen                                |
+| `sca`     | grype, syft, dependency-check (requires `java` group), cyclonedx-bom, cdxgen  |
 | `iac`     | tfsec, terrascan, checkov, kube-score, kubesec, dockle                               |
-| `malware` | capa, oletools, binwalk, malwoverview, pefile, clamav                                |
+| `malware` | capa, oletools (+ pefile), binwalk, malwoverview                             |
 | `rust`    | Rust toolchain (stable), cargo-audit, cargo-deny, cargo-geiger, cargo-outdated, yara-x-cli |
 | `java`    | JDK, Maven, Gradle                                                                   |
 | `php`     | php-cli, composer, psalm, phpstan, enlightn/security-checker                         |
