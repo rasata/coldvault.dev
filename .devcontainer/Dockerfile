@@ -70,9 +70,10 @@ RUN pipx install semgrep
 # Bandit — Python-specific SAST (fast, no extra deps)
 RUN pipx install bandit[toml]
 
-# Core Go security tools
-ENV GOPATH=/usr/local/go-tools
-ENV PATH=/usr/local/go-tools/bin:$PATH
+# Core Go security tools (two separate ENV instructions: set GOPATH first,
+# then expand it in PATH — Docker only resolves same-instruction vars from left).
+ENV GOPATH=/usr/local/go-tools \
+    PATH=/usr/local/go-tools/bin:$PATH
 RUN mkdir -p "$GOPATH" && \
     GO111MODULE=on go install github.com/securego/gosec/v2/cmd/gosec@latest && \
     GO111MODULE=on go install golang.org/x/vuln/cmd/govulncheck@latest

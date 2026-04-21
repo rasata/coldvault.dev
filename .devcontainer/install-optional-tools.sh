@@ -12,8 +12,8 @@
 #
 # Available groups:
 #   secrets   — trufflehog, ggshield
-#   sast      — njsscan, dlint, safety, pip-audit, checkov, cfn-lint, sqlfluff,
-#               eslint + security plugins, retire, snyk
+#   sast      — njsscan, dlint, safety, pip-audit, cfn-lint, sqlfluff,
+#               eslint + security plugins, retire, snyk,
 #               staticcheck, errcheck, gocritic
 #   sca       — grype, syft, dependency-check, cyclonedx-bom, cdxgen
 #   iac       — tfsec, terrascan, checkov, kube-score, kubesec, dockle
@@ -295,4 +295,4 @@ for group in "${GROUPS[@]}"; do
   esac
 done
 
-say "Done. Run 'bash .devcontainer/install-optional-tools.sh --help' to see all groups."
+say "Done. Re-run with any group name(s) to install more tools. See the header comment for the full list."
