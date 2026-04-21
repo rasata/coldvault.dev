@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaybookRouteImport } from './routes/playbook'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsExampleSummaryRouteImport } from './routes/reports.example-summary'
+import { Route as ReportsExampleScaRouteImport } from './routes/reports.example-sca'
 import { Route as BlogAnatomyOfADeceptiveDeveloperAttackRouteImport } from './routes/blog.anatomy-of-a-deceptive-developer-attack'
 
 const PlaybookRoute = PlaybookRouteImport.update({
@@ -21,6 +23,16 @@ const PlaybookRoute = PlaybookRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsExampleSummaryRoute = ReportsExampleSummaryRouteImport.update({
+  id: '/reports/example-summary',
+  path: '/reports/example-summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsExampleScaRoute = ReportsExampleScaRouteImport.update({
+  id: '/reports/example-sca',
+  path: '/reports/example-sca',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogAnatomyOfADeceptiveDeveloperAttackRoute =
@@ -34,34 +46,54 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-sca': typeof ReportsExampleScaRoute
+  '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-sca': typeof ReportsExampleScaRoute
+  '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-sca': typeof ReportsExampleScaRoute
+  '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/playbook' | '/blog/anatomy-of-a-deceptive-developer-attack'
+  fullPaths:
+    | '/'
+    | '/playbook'
+    | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-sca'
+    | '/reports/example-summary'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/playbook' | '/blog/anatomy-of-a-deceptive-developer-attack'
+  to:
+    | '/'
+    | '/playbook'
+    | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-sca'
+    | '/reports/example-summary'
   id:
     | '__root__'
     | '/'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-sca'
+    | '/reports/example-summary'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PlaybookRoute: typeof PlaybookRoute
   BlogAnatomyOfADeceptiveDeveloperAttackRoute: typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  ReportsExampleScaRoute: typeof ReportsExampleScaRoute
+  ReportsExampleSummaryRoute: typeof ReportsExampleSummaryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -80,6 +112,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/example-summary': {
+      id: '/reports/example-summary'
+      path: '/reports/example-summary'
+      fullPath: '/reports/example-summary'
+      preLoaderRoute: typeof ReportsExampleSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/example-sca': {
+      id: '/reports/example-sca'
+      path: '/reports/example-sca'
+      fullPath: '/reports/example-sca'
+      preLoaderRoute: typeof ReportsExampleScaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/anatomy-of-a-deceptive-developer-attack': {
       id: '/blog/anatomy-of-a-deceptive-developer-attack'
       path: '/blog/anatomy-of-a-deceptive-developer-attack'
@@ -95,6 +141,8 @@ const rootRouteChildren: RootRouteChildren = {
   PlaybookRoute: PlaybookRoute,
   BlogAnatomyOfADeceptiveDeveloperAttackRoute:
     BlogAnatomyOfADeceptiveDeveloperAttackRoute,
+  ReportsExampleScaRoute: ReportsExampleScaRoute,
+  ReportsExampleSummaryRoute: ReportsExampleSummaryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

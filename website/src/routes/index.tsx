@@ -95,6 +95,9 @@ function Nav() {
           <Link to="/playbook" className="hover:text-neon-magenta transition">
             Playbook
           </Link>
+          <Link to="/reports/example-summary" className="hover:text-neon-cyan transition">
+            Example report
+          </Link>
         </nav>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
@@ -531,8 +534,13 @@ function CTA() {
               </a>
             </Button>
             <Button asChild size="lg" variant="outline">
+              <Link to="/reports/example-summary">
+                See an example report <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
               <Link to="/blog/anatomy-of-a-deceptive-developer-attack">
-                Read the case study <ArrowRight className="ml-2 h-4 w-4" />
+                Read the case study
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
@@ -557,6 +565,9 @@ function Footer() {
           </Link>
           <Link to="/playbook" className="hover:text-neon-magenta">
             Playbook
+          </Link>
+          <Link to="/reports/example-summary" className="hover:text-neon-cyan">
+            Example report
           </Link>
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-neon-cyan">
             {t.footer.github}
