@@ -45,9 +45,19 @@ apt_install() {
     && sudo rm -rf /var/lib/apt/lists/*
 }
 
+pipx_has_package() {
+  local pkg="$1"
+  pipx list --short 2>/dev/null | grep -Fxq "$pkg"
+}
+
 pipx_install() {
   for pkg in "$@"; do
-    pipx install "$pkg" || warn "pipx install $pkg skipped"
+    if pipx_has_package "$pkg"; then
+      ok "$pkg already installed via pipx"
+      continue
+    fi
+
+    pipx install "$pkg" || warn "pipx install $pkg failed (non-fatal)"
   done
 }
 
