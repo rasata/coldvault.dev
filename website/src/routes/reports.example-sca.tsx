@@ -3,6 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { useTranslation } from "@/i18n/context";
+import { reportsScaTranslations } from "@/i18n/reports-sca";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -23,18 +25,16 @@ import {
 
 const REPO_URL = "https://github.com/rasata/coldvault.dev";
 
-const PAGE_TITLE =
-  "Example ColdVault report — Manual SCA on pro_lmng (no committed lockfile)";
-const PAGE_DESCRIPTION =
-  "A sanitised excerpt of a real Software Composition Analysis produced by ColdVault against a DeceptiveDevelopment-style Web3 repository — 11 high-risk dependencies, 11 unmaintained/typo-squat candidates, and a lockfile gap that blocks reproducibility.";
-
 export const Route = createFileRoute("/reports/example-sca")({
   component: ExampleSCAPage,
 });
 
 function ExampleSCAPage() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
+
   useEffect(() => {
-    document.title = PAGE_TITLE;
+    document.title = t.metaTitle;
     const setMeta = (
       sel: string,
       attr: "name" | "property",
@@ -49,21 +49,21 @@ function ExampleSCAPage() {
       }
       tag.setAttribute("content", value);
     };
-    setMeta('meta[name="description"]', "name", "description", PAGE_DESCRIPTION);
+    setMeta('meta[name="description"]', "name", "description", t.metaDescription);
     setMeta(
       'meta[property="og:title"]',
       "property",
       "og:title",
-      "Example ColdVault report — Manual SCA",
+      t.ogTitle,
     );
     setMeta(
       'meta[property="og:description"]',
       "property",
       "og:description",
-      PAGE_DESCRIPTION,
+      t.metaDescription,
     );
     setMeta('meta[property="og:type"]', "property", "og:type", "article");
-  }, []);
+  }, [t.metaTitle, t.metaDescription, t.ogTitle]);
 
   return (
     <div className="min-h-screen bg-grid">
@@ -75,72 +75,81 @@ function ExampleSCAPage() {
 
         <Section
           n="1"
-          title="High-risk declared dependencies"
-          subtitle="backend/package.json"
+          title={t.section1Title}
+          subtitle={t.section1Subtitle}
           icon={<ShieldAlert className="h-5 w-5" />}
         >
-          <RiskTable rows={backendHighRisk} />
+          <RiskTable rows={buildBackendHighRisk(t)} />
         </Section>
 
         <Section
           n="2"
-          title="Unmaintained / low-popularity / typo-squat candidates"
-          subtitle="Supply-chain canaries"
+          title={t.section2Title}
+          subtitle={t.section2Subtitle}
           icon={<PackageX className="h-5 w-5" />}
         >
           <p className="mb-4 text-sm text-muted-foreground">
-            None of these are critical by themselves, but the <em>pattern</em>{" "}
-            — a handful of 2012-era one-off packages, placeholder versions like{" "}
-            <code>0.0.0</code>, and registry-placeholder deps like{" "}
-            <code>fs@0.0.1-security</code> — is a strong signal that the{" "}
-            <code>package.json</code> was assembled carelessly, or padded to
-            blend payloads in.
+            {t.section2IntroPre}
+            <em>{t.section2IntroEm}</em>
+            {t.section2IntroMid1}
+            <code>0.0.0</code>
+            {t.section2IntroMid2}
+            <code>fs@0.0.1-security</code>
+            {t.section2IntroMid3}
+            <code>package.json</code>
+            {t.section2IntroPost}
           </p>
-          <RiskTable rows={suspiciousDeps} />
+          <RiskTable rows={buildSuspiciousDeps(t)} />
         </Section>
 
         <Section
           n="3"
-          title="Frontend dependencies"
-          subtitle="pro_lmng/package.json"
+          title={t.section3Title}
+          subtitle={t.section3Subtitle}
           icon={<Package className="h-5 w-5" />}
         >
-          <RiskTable rows={frontendDeps} />
+          <RiskTable rows={buildFrontendDeps(t)} />
         </Section>
 
         <Section
           n="4"
-          title="Postinstall / lifecycle hooks"
+          title={t.section4Title}
           icon={<Terminal className="h-5 w-5" />}
         >
-          <Callout tone="info" title="No explicit install-time hooks — inconclusive">
-            Neither <code>pro_lmng/package.json</code> nor{" "}
-            <code>backend/package.json</code> declare <code>postinstall</code>{" "}
-            / <code>preinstall</code> / <code>install</code> scripts.
-            Transitive hooks cannot be enumerated without installing —
-            deliberately <strong>not</strong> performed per ColdVault's{" "}
-            <code>CLAUDE.md §0</code> (zero-execution rule on{" "}
-            <code>target/</code>).
+          <Callout tone="info" title={t.section4CalloutTitle}>
+            {t.section4CalloutBody1Pre}
+            <code>pro_lmng/package.json</code>
+            {t.section4CalloutBody1Mid}
+            <code>backend/package.json</code>
+            {t.section4CalloutBody1Post}
+            <strong>{t.section4CalloutBody2NotEm}</strong>
+            {t.section4CalloutBody2Mid}
+            <code>CLAUDE.md §0</code>
+            {t.section4CalloutBody2Post}
           </Callout>
         </Section>
 
         <Section
           n="5"
-          title="Registry origin"
+          title={t.section5Title}
           icon={<FileSearch className="h-5 w-5" />}
         >
-          <Callout tone="good" title="No unusual origins detected">
-            All dependencies are declared with semver ranges — no{" "}
-            <code>git+</code>, <code>github:</code>, <code>file:</code>, or{" "}
-            <code>http:</code> URL deps. <code>.npmrc</code> contains no{" "}
-            <code>@scope:registry=</code> overrides. Default registry{" "}
-            (<code>registry.npmjs.org</code>) is assumed.
+          <Callout tone="good" title={t.section5CalloutTitle}>
+            {t.section5CalloutBodyPre}
+            <code>git+</code>
+            {t.section5CalloutBodyMid1}
+            <code>github:</code>
+            {t.section5CalloutBodyMid1}
+            <code>file:</code>
+            {t.section5CalloutBodyMid2}
+            <code>registry.npmjs.org</code>
+            {t.section5CalloutBodyPost}
           </Callout>
         </Section>
 
         <Section
           n="6"
-          title="Recommendation summary"
+          title={t.section6Title}
           icon={<CheckCircle2 className="h-5 w-5" />}
         >
           <RecommendationGrid />
@@ -165,225 +174,153 @@ interface RiskRow {
   note: string;
 }
 
-const backendHighRisk: RiskRow[] = [
-  {
-    name: "request",
-    version: "^2.88.2",
-    severity: "HIGH",
-    note: "Deprecated since 2020. CVE-2023-28155 (SSRF via follow-redirects). No upstream fixes forthcoming. Used in both backend and frontend.",
-  },
-  {
-    name: "xlsx",
-    version: "^0.18.5",
-    severity: "HIGH",
-    note: "CVE-2023-30533 prototype pollution; CVE-2024-22363 ReDoS. SheetJS was removed from npm; installing via npm registry returns abandoned 0.18.5. Replacement requires xlsx-js-style or direct SheetJS CDN.",
-  },
-  {
-    name: "crypto-js",
-    version: "^4.2.0",
-    severity: "HIGH",
-    note: "4.2.0 fixes CVE-2023-46233 (PBKDF1 insecure). Caret permits upgrades, but the code uses deliberately weak parameters — PBKDF2 with 100 iterations (app.js:12, register.controller.js:700). Library is deprecated in favour of WebCrypto / crypto-browserify.",
-  },
-  {
-    name: "ethereumjs-util",
-    version: "^7.1.5",
-    severity: "HIGH",
-    note: "Deprecated. Replaced by @ethereumjs/util 9.x. Security fixes no longer backported.",
-  },
-  {
-    name: "mysql",
-    version: "^2.18.1",
-    severity: "HIGH",
-    note: "Declared alongside mysql2 ^3.11.5; utils/connection.js uses the legacy mysql driver while the pools elsewhere use mysql2. Known SQLi hazards with string interpolation (see SAST findings).",
-  },
-  {
-    name: "tronweb",
-    version: "^6.0.4",
-    severity: "MED",
-    note: "Recent — caret permits 6.x; earlier 5.x had a grpc vuln, 6.x OK. Still verify integrity.",
-  },
-  {
-    name: "xrpl",
-    version: "^3.1.0",
-    severity: "LOW",
-    note: "OK today; large npm dep. Keep under SCA watch.",
-  },
-  {
-    name: "formidable",
-    version: "^3.5.1",
-    severity: "LOW",
-    note: "CVE-2022-29622 (path traversal) fixed in 2.x / 3.x. No known unfixed vulns at 3.5.1.",
-  },
-  {
-    name: "adm-zip",
-    version: "^0.5.10",
-    severity: "MED",
-    note: "CVE-2024-48948 / CVE-2018-1002204 zip-slip class. Caret permits 0.5.10 which includes fixes; verify after install.",
-  },
-  {
-    name: "jsonwebtoken",
-    version: "^9.0.2",
-    severity: "HIGH",
-    note: "9.x fixes known signature-confusion bugs. Safe only if JWT_SECRET_KEY is set — here it is empty string.",
-  },
-  {
-    name: "multer",
-    version: "^2.0.0",
-    severity: "MED",
-    note: "Multer 2 is a fresh major; fewer historical audits. Upload path in routes.js uses unsafe filetype derivation.",
-  },
+type Dict = (typeof reportsScaTranslations)[keyof typeof reportsScaTranslations];
+
+const backendHighRiskMeta: { name: string; version: string; severity: Severity }[] = [
+  { name: "request", version: "^2.88.2", severity: "HIGH" },
+  { name: "xlsx", version: "^0.18.5", severity: "HIGH" },
+  { name: "crypto-js", version: "^4.2.0", severity: "HIGH" },
+  { name: "ethereumjs-util", version: "^7.1.5", severity: "HIGH" },
+  { name: "mysql", version: "^2.18.1", severity: "HIGH" },
+  { name: "tronweb", version: "^6.0.4", severity: "MED" },
+  { name: "xrpl", version: "^3.1.0", severity: "LOW" },
+  { name: "formidable", version: "^3.5.1", severity: "LOW" },
+  { name: "adm-zip", version: "^0.5.10", severity: "MED" },
+  { name: "jsonwebtoken", version: "^9.0.2", severity: "HIGH" },
+  { name: "multer", version: "^2.0.0", severity: "MED" },
 ];
 
-const suspiciousDeps: RiskRow[] = [
-  {
-    name: "blob",
-    version: "0.1.0",
-    severity: "MED",
-    note: "2012 package, deprecated. Unnecessary in modern Node.",
-  },
-  {
-    name: "fs",
-    version: "0.0.1-security",
-    severity: "HIGH",
-    note: "The registry placeholder. Including it is a code-smell; likely a copy-paste error. Treat as benign but a sign the repo was generated carelessly — or a cover for an fs-shadowing payload.",
-  },
-  {
-    name: "execp",
-    version: "0.0.1",
-    severity: "HIGH",
-    note: "Single-version package, 10 weekly downloads. High supply-chain risk.",
-  },
-  {
-    name: "reverse-string",
-    version: "0.0.6",
-    severity: "MED",
-    note: "Tiny 2015 package — consider a typo-squat vector.",
-  },
-  {
-    name: "ethereum-address",
-    version: "0.0.4",
-    severity: "HIGH",
-    note: "Last published 2017. Plausibly typo-squatted. Name resembles legitimate ethereum-address-validator.",
-  },
-  {
-    name: "send-crypto",
-    version: "0.0.0",
-    severity: "HIGH",
-    note: "Version string 0.0.0 is unusual and denotes 'not-released'. Verify author before trusting.",
-  },
-  {
-    name: "validate-phone-number-node-js",
-    version: "0.0.1",
-    severity: "MED",
-    note: "Low popularity, pinned exact.",
-  },
-  {
-    name: "nodejs-base64",
-    version: "^2.0.0",
-    severity: "LOW",
-    note: "Not actively maintained. btoa is built-in in Node 16+.",
-  },
-  {
-    name: "referral-code-generator",
-    version: "^1.0.8",
-    severity: "LOW",
-    note: "Small package, not security-audited.",
-  },
-  {
-    name: "image-thumbnail",
-    version: "^1.0.13",
-    severity: "HIGH",
-    note: "Shell-invokes ImageMagick — potential RCE if user filenames flow through. Cross-reference SAST output for shell-arg injection paths.",
-  },
-  {
-    name: "probe-image-size",
-    version: "^7.2.3",
-    severity: "MED",
-    note: "Makes outbound HTTP requests; SSRF risk if user URLs flow through.",
-  },
+const suspiciousDepsMeta: { name: string; version: string; severity: Severity }[] = [
+  { name: "blob", version: "0.1.0", severity: "MED" },
+  { name: "fs", version: "0.0.1-security", severity: "HIGH" },
+  { name: "execp", version: "0.0.1", severity: "HIGH" },
+  { name: "reverse-string", version: "0.0.6", severity: "MED" },
+  { name: "ethereum-address", version: "0.0.4", severity: "HIGH" },
+  { name: "send-crypto", version: "0.0.0", severity: "HIGH" },
+  { name: "validate-phone-number-node-js", version: "0.0.1", severity: "MED" },
+  { name: "nodejs-base64", version: "^2.0.0", severity: "LOW" },
+  { name: "referral-code-generator", version: "^1.0.8", severity: "LOW" },
+  { name: "image-thumbnail", version: "^1.0.13", severity: "HIGH" },
+  { name: "probe-image-size", version: "^7.2.3", severity: "MED" },
 ];
 
-const frontendDeps: RiskRow[] = [
-  {
-    name: "@walletconnect/ethereum-provider",
-    version: "1.8.0",
-    severity: "HIGH",
-    note: "WalletConnect v1 was deprecated in June 2023 and officially sunset. v1 relays have been shut down. Keeping v1 in production means wallet connections will fail and third-party relay infrastructure is untrusted.",
-  },
-  {
-    name: "request",
-    version: "^2.88.2",
-    severity: "HIGH",
-    note: "Same as backend — deprecated. Odd to bundle it into a CRA frontend build.",
-  },
-  {
-    name: "react-scripts",
-    version: "5.0.1",
-    severity: "MED",
-    note: "Numerous transitive advisories via postcss, terser, nth-check. CRA is unmaintained since 2023.",
-  },
-  {
-    name: "@web3-react/*",
-    version: "8.0.x-beta.*",
-    severity: "MED",
-    note: "Pre-release betas used in production. Breaking-change window — unusual for a claimed $6.5M-backed platform.",
-  },
-  {
-    name: "react-custom-roulette",
-    version: "^1.4.1",
-    severity: "INFO",
-    note: "Implies a gambling / spin-the-wheel UI in a staking app — product-risk, not code-risk.",
-  },
-  {
-    name: "buffer, fs",
-    version: "—",
-    severity: "MED",
-    note: "Redundant in a browser bundle; indicates shim leakage from Node code.",
-  },
+const frontendDepsMeta: { name: string; version: string; severity: Severity }[] = [
+  { name: "@walletconnect/ethereum-provider", version: "1.8.0", severity: "HIGH" },
+  { name: "request", version: "^2.88.2", severity: "HIGH" },
+  { name: "react-scripts", version: "5.0.1", severity: "MED" },
+  { name: "@web3-react/*", version: "8.0.x-beta.*", severity: "MED" },
+  { name: "react-custom-roulette", version: "^1.4.1", severity: "INFO" },
+  { name: "buffer, fs", version: "—", severity: "MED" },
 ];
 
-const blocks: { pkg: string; action: string; replacement?: string }[] = [
-  { pkg: "request", action: "Remove", replacement: "undici / native fetch" },
-  {
-    pkg: "xlsx",
-    action: "Replace",
-    replacement: "xlsx-js-style or direct SheetJS CDN",
-  },
-  {
-    pkg: "ethereumjs-util",
-    action: "Replace",
-    replacement: "@ethereumjs/util 9.x",
-  },
-  { pkg: "blob", action: "Remove" },
-  { pkg: "fs", action: "Remove (registry placeholder)" },
-  { pkg: "execp", action: "Remove" },
-  { pkg: "reverse-string", action: "Remove" },
-  { pkg: "ethereum-address", action: "Remove" },
-  { pkg: "send-crypto", action: "Remove (0.0.0 placeholder)" },
-  { pkg: "validate-phone-number-node-js", action: "Remove" },
-  { pkg: "nodejs-base64", action: "Remove (use built-in)" },
-  {
-    pkg: "WalletConnect v1",
-    action: "Upgrade",
-    replacement: "@walletconnect/ethereum-provider v2",
-  },
+function buildBackendHighRisk(t: Dict): RiskRow[] {
+  return backendHighRiskMeta.map((m, i) => ({
+    ...m,
+    note: t.backendHighRiskNotes[i],
+  }));
+}
+
+function buildSuspiciousDeps(t: Dict): RiskRow[] {
+  return suspiciousDepsMeta.map((m, i) => ({
+    ...m,
+    note: t.suspiciousDepsNotes[i],
+  }));
+}
+
+function buildFrontendDeps(t: Dict): RiskRow[] {
+  return frontendDepsMeta.map((m, i) => ({
+    ...m,
+    note: t.frontendDepsNotes[i],
+  }));
+}
+
+const blocks: { pkg: string; actionKey: "remove" | "replace" | "upgrade" | "removeRegistry" | "remove0"| "removeBuiltin"; replacement?: string }[] = [
+  { pkg: "request", actionKey: "remove", replacement: "undici / native fetch" },
+  { pkg: "xlsx", actionKey: "replace", replacement: "xlsx-js-style or direct SheetJS CDN" },
+  { pkg: "ethereumjs-util", actionKey: "replace", replacement: "@ethereumjs/util 9.x" },
+  { pkg: "blob", actionKey: "remove" },
+  { pkg: "fs", actionKey: "removeRegistry" },
+  { pkg: "execp", actionKey: "remove" },
+  { pkg: "reverse-string", actionKey: "remove" },
+  { pkg: "ethereum-address", actionKey: "remove" },
+  { pkg: "send-crypto", actionKey: "remove0" },
+  { pkg: "validate-phone-number-node-js", actionKey: "remove" },
+  { pkg: "nodejs-base64", actionKey: "removeBuiltin" },
+  { pkg: "WalletConnect v1", actionKey: "upgrade", replacement: "@walletconnect/ethereum-provider v2" },
 ];
 
-const investigate: { pkg: string; question: string }[] = [
-  {
-    pkg: "image-thumbnail",
-    question:
-      "Trace usage path — shell-arg injection via user filenames?",
+const actionLabels: Record<string, Record<typeof blocks[number]["actionKey"], string>> = {
+  en: {
+    remove: "Remove",
+    replace: "Replace",
+    upgrade: "Upgrade",
+    removeRegistry: "Remove (registry placeholder)",
+    remove0: "Remove (0.0.0 placeholder)",
+    removeBuiltin: "Remove (use built-in)",
   },
-  {
-    pkg: "probe-image-size",
-    question: "Do user-supplied URLs flow into it? SSRF risk.",
+  fr: {
+    remove: "Retirer",
+    replace: "Remplacer",
+    upgrade: "Mettre à jour",
+    removeRegistry: "Retirer (placeholder registre)",
+    remove0: "Retirer (placeholder 0.0.0)",
+    removeBuiltin: "Retirer (utiliser le natif)",
   },
-];
+  de: {
+    remove: "Entfernen",
+    replace: "Ersetzen",
+    upgrade: "Upgraden",
+    removeRegistry: "Entfernen (Registry-Platzhalter)",
+    remove0: "Entfernen (0.0.0-Platzhalter)",
+    removeBuiltin: "Entfernen (eingebaut nutzen)",
+  },
+  es: {
+    remove: "Eliminar",
+    replace: "Reemplazar",
+    upgrade: "Actualizar",
+    removeRegistry: "Eliminar (placeholder del registro)",
+    remove0: "Eliminar (placeholder 0.0.0)",
+    removeBuiltin: "Eliminar (usar nativo)",
+  },
+  zh: {
+    remove: "移除",
+    replace: "替换",
+    upgrade: "升级",
+    removeRegistry: "移除（注册表占位）",
+    remove0: "移除（0.0.0 占位）",
+    removeBuiltin: "移除（用内置）",
+  },
+  ja: {
+    remove: "削除",
+    replace: "置換",
+    upgrade: "アップグレード",
+    removeRegistry: "削除（レジストリのプレースホルダー）",
+    remove0: "削除（0.0.0 プレースホルダー）",
+    removeBuiltin: "削除（組み込みを使用）",
+  },
+  ko: {
+    remove: "제거",
+    replace: "교체",
+    upgrade: "업그레이드",
+    removeRegistry: "제거(레지스트리 플레이스홀더)",
+    remove0: "제거(0.0.0 플레이스홀더)",
+    removeBuiltin: "제거(내장 사용)",
+  },
+  ar: {
+    remove: "أزِل",
+    replace: "استبدِل",
+    upgrade: "حدِّث",
+    removeRegistry: "أزِل (نائب السجل)",
+    remove0: "أزِل (نائب 0.0.0)",
+    removeBuiltin: "أزِل (استخدم المدمج)",
+  },
+};
 
 /* ───────── components ───────── */
 
 function ReportNav() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <header className="fixed top-0 z-50 w-full glass">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -398,12 +335,12 @@ function ReportNav() {
           <Button asChild variant="ghost" size="sm">
             <Link to="/">
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Home
+              {t.navHome}
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/blog/anatomy-of-a-deceptive-developer-attack">
-              Case study
+              {t.navCaseStudy}
             </Link>
           </Button>
         </div>
@@ -413,54 +350,63 @@ function ReportNav() {
 }
 
 function ReportHeader() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <header className="mb-10">
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge className="bg-[var(--neon-cyan)]/15 text-[var(--neon-cyan)] border-[var(--neon-cyan)]/40 font-mono">
-          Example report
+          {t.badgeExample}
         </Badge>
         <Badge variant="outline" className="border-[var(--neon-violet)]/40">
-          #SCA
+          {t.tagSca}
         </Badge>
         <Badge variant="outline" className="border-[var(--neon-violet)]/40">
-          #supply-chain
+          {t.tagSupplyChain}
         </Badge>
         <Badge variant="outline" className="border-[var(--neon-violet)]/40">
-          #web3
+          {t.tagWeb3}
         </Badge>
       </div>
       <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
-        Manual SCA —{" "}
+        {t.titleLead}{" "}
         <span className="bg-gradient-to-r from-[var(--neon-cyan)] via-[var(--neon-violet)] to-[var(--neon-magenta)] bg-clip-text text-transparent">
-          no lockfile present
+          {t.titleAccent}
         </span>
       </h1>
       <p className="mt-4 text-lg text-muted-foreground">
-        Sanitised excerpt of a real ColdVault audit against a{" "}
+        {t.introPre}
         <code className="rounded bg-muted px-1 py-0.5 text-sm text-[var(--neon-magenta)]">
           DeceptiveDevelopment
         </code>
-        -style Web3 repository. Reproduced here so you can see the shape of what
-        lands in <code>reports/</code> after <code>/audit</code>.
+        {t.introCodeSuffix}
+        <code>reports/</code>
+        {t.introPost}
+        <code>/audit</code>.
       </p>
       <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 font-mono text-xs leading-relaxed text-muted-foreground">
-        <span className="text-[var(--neon-cyan)]">target:</span>{" "}
+        <span className="text-[var(--neon-cyan)]">{t.metaTarget}</span>{" "}
         bitbucket.org/teamincwork/pro_lmng
         <br />
-        <span className="text-[var(--neon-cyan)]">scan:</span> manual SCA
-        (osv-scanner, trivy, syft, grype — no lockfile → all returned empty)
+        <span className="text-[var(--neon-cyan)]">{t.metaScan}</span>{" "}
+        {t.metaScanValue}
         <br />
-        <span className="text-[var(--neon-cyan)]">source:</span>{" "}
-        backend/package.json + pro_lmng/package.json declared ranges
+        <span className="text-[var(--neon-cyan)]">{t.metaSource}</span>{" "}
+        {t.metaSourceValue}
         <br />
-        <span className="text-[var(--neon-cyan)]">status:</span>{" "}
-        <span className="text-destructive">BLOCK — do not deploy</span>
+        <span className="text-[var(--neon-cyan)]">{t.metaStatus}</span>{" "}
+        <span className="text-destructive">{t.metaStatusValue}</span>
       </div>
     </header>
   );
 }
 
 function Scorecard() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
+  const backendHighRisk = buildBackendHighRisk(t);
+  const suspiciousDeps = buildSuspiciousDeps(t);
+  const frontendDeps = buildFrontendDeps(t);
   const counts = {
     high:
       backendHighRisk.filter((r) => r.severity === "HIGH").length +
@@ -481,27 +427,27 @@ function Scorecard() {
     <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <ScoreCard
         tone="high"
-        label="High-severity"
+        label={t.scoreHighLabel}
         value={counts.high}
-        hint="Exploitable under realistic conditions"
+        hint={t.scoreHighHint}
       />
       <ScoreCard
         tone="med"
-        label="Medium"
+        label={t.scoreMedLabel}
         value={counts.med}
-        hint="Exploitable under specific conditions"
+        hint={t.scoreMedHint}
       />
       <ScoreCard
         tone="low"
-        label="Low"
+        label={t.scoreLowLabel}
         value={counts.low}
-        hint="Defense-in-depth"
+        hint={t.scoreLowHint}
       />
       <ScoreCard
         tone="info"
-        label="Informational"
+        label={t.scoreInfoLabel}
         value={counts.info}
-        hint="Product / non-security"
+        hint={t.scoreInfoHint}
       />
     </div>
   );
@@ -546,6 +492,8 @@ function ScoreCard({
 }
 
 function BlockingIssue() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <div className="mb-10 overflow-hidden rounded-2xl border-2 border-destructive/50 bg-gradient-to-br from-destructive/10 to-[var(--neon-magenta)]/5">
       <div className="flex items-start gap-4 p-6">
@@ -554,26 +502,28 @@ function BlockingIssue() {
         </div>
         <div className="flex-1">
           <div className="text-xs font-mono font-bold uppercase tracking-widest text-destructive">
-            Blocking finding
+            {t.blockingLabel}
           </div>
           <h2 className="mt-1 font-display text-xl font-bold sm:text-2xl">
-            No lockfile committed — <code>.gitignore</code> excludes{" "}
-            <code>package-lock.json</code> and <code>yarn.lock</code>
+            {t.blockingTitlePre}
+            <code>.gitignore</code>
+            {t.blockingTitlePost}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-foreground/90">
-            Without a lockfile, every <code>npm install</code> resolves
-            floating transitive trees, making reproducibility and SCA
-            impossible. Every tool ColdVault ran (<code>osv-scanner</code>,{" "}
-            <code>trivy fs</code>, <code>syft</code>, <code>grype</code>)
-            returned <strong>empty</strong> — they had nothing to parse.
+            {t.blockingBody1Pre}
+            <code>npm install</code>
+            {t.blockingBody1Mid}
+            <code>osv-scanner</code>, <code>trivy fs</code>, <code>syft</code>,{" "}
+            <code>grype</code>
+            {t.blockingBody1Post}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-foreground/90">
-            <strong className="text-destructive">Required before deploy:</strong>{" "}
-            remove the <code>.gitignore</code> entries, run{" "}
-            <code>npm install</code> in a sandbox, commit the resulting{" "}
-            <code>package-lock.json</code>, then re-run the SCA. Ranges below
-            are declared-only; a real lockfile resolution could make specific
-            pins <em>worse</em> than shown here.
+            <strong className="text-destructive">{t.blockingBody2Required}</strong>
+            {t.blockingBody2Pre}
+            <code>.gitignore</code>
+            {t.blockingBody2Mid}
+            <em>{t.blockingBody2WorseEm}</em>
+            {t.blockingBody2Post}
           </p>
         </div>
       </div>
@@ -638,6 +588,8 @@ function severityBadge(sev: Severity) {
 }
 
 function RiskTable({ rows }: { rows: RiskRow[] }) {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <div className="overflow-hidden rounded-xl border border-border">
       <div className="overflow-x-auto">
@@ -645,13 +597,13 @@ function RiskTable({ rows }: { rows: RiskRow[] }) {
           <thead className="bg-muted/60">
             <tr>
               <th className="w-[22%] px-3 py-2 text-left font-semibold">
-                Package
+                {t.thPackage}
               </th>
               <th className="w-[14%] px-3 py-2 text-left font-semibold">
-                Declared
+                {t.thDeclared}
               </th>
-              <th className="w-[8%] px-3 py-2 text-left font-semibold">Sev</th>
-              <th className="px-3 py-2 text-left font-semibold">Risk</th>
+              <th className="w-[8%] px-3 py-2 text-left font-semibold">{t.thSev}</th>
+              <th className="px-3 py-2 text-left font-semibold">{t.thRisk}</th>
             </tr>
           </thead>
           <tbody>
@@ -723,28 +675,30 @@ function Callout({
 }
 
 function RecommendationGrid() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
+  const labels = actionLabels[locale];
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rounded-xl border-2 border-destructive/50 bg-destructive/5 p-5">
         <div className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-destructive">
           <Ban className="h-4 w-4" />
-          Block deploy until fixed
+          {t.recBlockTitle}
         </div>
         <ul className="space-y-2 text-sm">
           <li className="flex items-start gap-2">
             <span className="mt-0.5 text-destructive">•</span>
             <span>
-              Commit a <code className="rounded bg-muted px-1 py-0.5 text-xs text-[var(--neon-magenta)]">package-lock.json</code>{" "}
-              and remove the <code className="rounded bg-muted px-1 py-0.5 text-xs text-[var(--neon-magenta)]">.gitignore</code>{" "}
-              entries that exclude it.
+              {t.recBlockItem1Pre}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs text-[var(--neon-magenta)]">package-lock.json</code>
+              {t.recBlockItem1Mid}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs text-[var(--neon-magenta)]">.gitignore</code>
+              {t.recBlockItem1Post}
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-0.5 text-destructive">•</span>
-            <span>
-              Re-run the SCA against the committed lockfile — declared-only
-              ranges can hide worse transitive pins.
-            </span>
+            <span>{t.recBlockItem2}</span>
           </li>
         </ul>
       </div>
@@ -752,7 +706,7 @@ function RecommendationGrid() {
       <div className="rounded-xl border-2 border-[var(--neon-cyan)]/40 bg-[var(--neon-cyan)]/5 p-5">
         <div className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-[var(--neon-cyan)]">
           <PackageX className="h-4 w-4" />
-          Remove or replace
+          {t.recRemoveTitle}
         </div>
         <div className="space-y-2">
           {blocks.map((b) => (
@@ -764,7 +718,7 @@ function RecommendationGrid() {
                 {b.pkg}
               </span>
               <span className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                {b.action}
+                {labels[b.actionKey]}
               </span>
               {b.replacement && (
                 <span className="text-xs text-muted-foreground">
@@ -779,17 +733,21 @@ function RecommendationGrid() {
       <div className="rounded-xl border-2 border-[var(--neon-magenta)]/40 bg-[var(--neon-magenta)]/5 p-5 md:col-span-2">
         <div className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-[var(--neon-magenta)]">
           <HelpCircle className="h-4 w-4" />
-          Investigate (data-flow into these sinks)
+          {t.recInvestigateTitle}
         </div>
         <ul className="space-y-2 text-sm">
-          {investigate.map((i) => (
-            <li key={i.pkg} className="flex items-start gap-3">
-              <span className="mt-0.5 font-mono text-xs text-[var(--neon-magenta)]">
-                {i.pkg}
-              </span>
-              <span className="text-foreground/90">{i.question}</span>
-            </li>
-          ))}
+          <li className="flex items-start gap-3">
+            <span className="mt-0.5 font-mono text-xs text-[var(--neon-magenta)]">
+              image-thumbnail
+            </span>
+            <span className="text-foreground/90">{t.investigateQuestions[0]}</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="mt-0.5 font-mono text-xs text-[var(--neon-magenta)]">
+              probe-image-size
+            </span>
+            <span className="text-foreground/90">{t.investigateQuestions[1]}</span>
+          </li>
         </ul>
       </div>
     </div>
@@ -797,43 +755,49 @@ function RecommendationGrid() {
 }
 
 function AnalystNote() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <aside className="mt-12 rounded-2xl border border-[var(--neon-violet)]/40 bg-gradient-to-br from-[var(--neon-violet)]/10 to-[var(--neon-cyan)]/5 p-6">
       <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-[var(--neon-violet)]">
         <AlertTriangle className="h-4 w-4" />
-        What this report is — and is not
+        {t.analystTitle}
       </div>
       <p className="text-sm leading-relaxed text-foreground/90">
-        This is a <strong>declared-range SCA</strong>, not a full audit. The
-        companion passes (<code>scan-secrets</code>, <code>scan-sast</code>,{" "}
-        <code>scan-malware</code>, <code>scan-iac</code>) produce their own
-        findings — SAST flagged the <code>mysql</code>-vs-<code>mysql2</code>{" "}
-        string-interpolation SQLi path, malware triage confirmed one
-        dependency shadowing Node's <code>fs</code> at require-time. Read
-        everything end-to-end before making a decision. The lockfile gap
-        alone is already reason to stop.
+        {t.analystBodyPre}
+        <strong>{t.analystBodyStrong}</strong>
+        {t.analystBodyMid1}
+        <code>scan-secrets</code>
+        {t.analystBodyMid2}
+        <code>scan-sast</code>
+        {t.analystBodyMid3}
+        <code>scan-malware</code>
+        {t.analystBodyMid4}
+        <code>scan-iac</code>
+        {t.analystBodyMid5}
       </p>
     </aside>
   );
 }
 
 function CTASection() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <section className="mt-12">
       <div className="relative overflow-hidden rounded-3xl border border-border glass p-8 text-center">
         <div className="absolute -top-20 left-1/2 h-40 w-[120%] -translate-x-1/2 bg-gradient-to-r from-[var(--neon-cyan)]/20 via-[var(--neon-violet)]/20 to-[var(--neon-magenta)]/20 blur-3xl" />
         <Terminal className="mx-auto h-10 w-10 text-[var(--neon-cyan)]" />
         <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
-          Run this against{" "}
+          {t.ctaTitleLead}{" "}
           <span className="bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-magenta)] bg-clip-text text-transparent">
-            your own suspect repo
+            {t.ctaTitleAccent}
           </span>
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-          Clone ColdVault, attach the target as a read-only submodule, and ask
-          Claude Code to run <code>/audit</code>. Five minutes later you have
-          a report like the one above — plus secrets, SAST, malware, and IaC
-          passes.
+          {t.ctaBodyPre}
+          <code>{t.ctaBodyCode}</code>
+          {t.ctaBodyPost}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button
@@ -842,17 +806,17 @@ function CTASection() {
           >
             <a href={REPO_URL} target="_blank" rel="noreferrer">
               <Github className="mr-2 h-4 w-4" />
-              github.com/rasata/coldvault.dev
+              {t.ctaPrimary}
             </a>
           </Button>
           <Button asChild variant="outline">
             <Link to="/blog/anatomy-of-a-deceptive-developer-attack">
-              Read the case study
+              {t.ctaSecondary}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to="/playbook">Open the Playbook</Link>
+            <Link to="/playbook">{t.ctaTertiary}</Link>
           </Button>
         </div>
       </div>
@@ -861,10 +825,12 @@ function CTASection() {
 }
 
 function Footer() {
+  const { locale } = useTranslation();
+  const t = reportsScaTranslations[locale];
   return (
     <footer className="mt-16 border-t border-border pt-8 text-center text-sm text-muted-foreground">
       <p>
-        Published by{" "}
+        {t.footerPublishedBy}{" "}
         <a
           href="https://zonova.io"
           className="text-[var(--neon-cyan)] underline"
@@ -873,8 +839,7 @@ function Footer() {
         >
           ZONOVA RESEARCH
         </a>
-        . Example artefact — reproduced under the ColdVault zero-execution
-        protocol. MIT-licensed source.
+        {t.footerSuffix}
       </p>
     </footer>
   );
