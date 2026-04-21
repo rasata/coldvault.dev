@@ -4,6 +4,8 @@
 # static analysis, SCA, SAST, secrets, malware, container, IaC
 # and binary auditing tools. No code from target/ is ever executed.
 
+FROM golang:1.23.4-bookworm AS go_toolchain
+
 FROM mcr.microsoft.com/devcontainers/base:debian-12
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -54,14 +56,9 @@ RUN set -eu; \
       rm -rf /tmp/radare2; \
     fi
 
-# Go toolchain (from upstream — Debian's golang-go is too old for modern
-# go.mod directives like 'go 1.25.0' emitted by recent gosec/govulncheck).
-# Any go>=1.21 parses the new format; toolchain auto-download (GOTOOLCHAIN)
-# fetches the exact minor when a project requires it.
-ARG GO_VERSION=1.23.4
-RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz \
- && tar -C /usr/local -xzf /tmp/go.tar.gz \
- && rm /tmp/go.tar.gz
+# Go toolchain (from upstream image — avoids direct downloads from dl.google.com
+# which may be unreachable in restricted CI/build networks).
+COPY --from=go_toolchain /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:$PATH
 
 # Node.js LTS (via NodeSource)
