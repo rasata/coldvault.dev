@@ -31,3 +31,9 @@ target/**/__pycache__/
 target/**/.venv/
 target/**/dist/
 target/**/build/
+
+# Website build artifacts
+website/node_modules/
+website/dist/
+website/.vite/
+website/.tanstack/

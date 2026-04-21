@@ -339,6 +339,30 @@ claude
 
 ---
 
+## 10bis. The coldvault.dev website
+
+The public landing page served at <https://coldvault.dev> lives in this same
+repo under [`website/`](./website) — a Vite + React + TanStack Router static
+SPA. It is **self-contained** (no external submodule, no private upstream,
+no on-premise deployment path).
+
+```bash
+cd website
+npm ci
+npm run dev          # local preview on :8080
+npm run build        # static artifact in website/dist
+```
+
+Deployment is automated by
+[`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml)
+— every push to `main` that touches `website/**` builds the SPA and publishes
+it to GitHub Pages behind the `coldvault.dev` custom domain. The only
+authoritative origin is `https://coldvault.dev`; see
+[`website/IMPERSONATION.md`](./website/IMPERSONATION.md) for the
+anti-impersonation controls and the one-time DNS setup.
+
+---
+
 ## 11. Contributing / extending
 
 - Add a new scanner → edit `.devcontainer/Dockerfile` + a wrapper in `scripts/`.
