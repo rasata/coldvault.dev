@@ -63,7 +63,7 @@ ENV PATH=/usr/local/go/bin:$PATH
 
 # Node.js LTS (via NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
- && apt-get install -y --no-install-recommends nodejs \
+ && apt-get install -y --no-install-recommends nodejs npm \
  && rm -rf /var/lib/apt/lists/*
 
 # Pin TypeScript to a known-good 5.x to avoid TS5107 (target=ES5 deprecation
