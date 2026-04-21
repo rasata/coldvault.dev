@@ -95,6 +95,9 @@ function Nav() {
           <Link to="/playbook" className="hover:text-neon-magenta transition">
             Playbook
           </Link>
+          <Link to="/commands" className="hover:text-neon-cyan transition">
+            {t.nav.commands}
+          </Link>
           <Link to="/reports/example-summary" className="hover:text-neon-cyan transition">
             Example report
           </Link>
@@ -565,6 +568,9 @@ function Footer() {
           </Link>
           <Link to="/playbook" className="hover:text-neon-magenta">
             Playbook
+          </Link>
+          <Link to="/commands" className="hover:text-neon-cyan">
+            {t.nav.commands}
           </Link>
           <Link to="/reports/example-summary" className="hover:text-neon-cyan">
             Example report

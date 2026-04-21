@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaybookRouteImport } from './routes/playbook'
+import { Route as CommandsRouteImport } from './routes/commands'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsExampleSummaryRouteImport } from './routes/reports.example-summary'
 import { Route as ReportsExampleScaRouteImport } from './routes/reports.example-sca'
@@ -18,6 +19,11 @@ import { Route as BlogAnatomyOfADeceptiveDeveloperAttackRouteImport } from './ro
 const PlaybookRoute = PlaybookRouteImport.update({
   id: '/playbook',
   path: '/playbook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandsRoute = CommandsRouteImport.update({
+  id: '/commands',
+  path: '/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -44,6 +50,7 @@ const BlogAnatomyOfADeceptiveDeveloperAttackRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
@@ -59,6 +67,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
     | '/reports/example-sca'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
     | '/reports/example-sca'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
     | '/reports/example-sca'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommandsRoute: typeof CommandsRoute
   PlaybookRoute: typeof PlaybookRoute
   BlogAnatomyOfADeceptiveDeveloperAttackRoute: typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
   ReportsExampleScaRoute: typeof ReportsExampleScaRoute
@@ -103,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/playbook'
       fullPath: '/playbook'
       preLoaderRoute: typeof PlaybookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commands': {
+      id: '/commands'
+      path: '/commands'
+      fullPath: '/commands'
+      preLoaderRoute: typeof CommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommandsRoute: CommandsRoute,
   PlaybookRoute: PlaybookRoute,
   BlogAnatomyOfADeceptiveDeveloperAttackRoute:
     BlogAnatomyOfADeceptiveDeveloperAttackRoute,
