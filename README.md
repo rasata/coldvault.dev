@@ -64,6 +64,7 @@ cd coldvault.dev
 # → Click "Open in GitHub Codespaces"
 gh auth login && claude login
 git submodule add <SUSPECT-REPO-URL> target/
+export COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only
 claude    # then type /audit
 ```
 
@@ -329,16 +330,43 @@ claude login              # Claude Code auth
 # 4. Attach the suspect repo as a READ-ONLY submodule
 git submodule add --depth=1 https://github.com/<suspect>/<repo>.git target/
 
-# 5. Launch the audit
+# 5. Acknowledge defensive-use policy (required by scan scripts)
+export COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only
+
+# 6. Launch the audit
 claude
 #   > /audit
 
-# 6. Open reports/SUMMARY.md
+# 7. Open reports/SUMMARY.md
 ```
 
 ---
 
-## 11. Optional tools
+## 11. The coldvault.dev website
+
+The public landing page served at <https://coldvault.dev> lives in this same
+repo under [`website/`](./website) — a Vite + React + TanStack Router static
+SPA. It is **self-contained** (no external submodule, no private upstream,
+no on-premise deployment path).
+
+```bash
+cd website
+npm ci
+npm run dev          # local preview on :8080
+npm run build        # static artifact in website/dist
+```
+
+Deployment is automated by
+[`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml)
+— every push to `main` that touches `website/**` builds the SPA and publishes
+it to GitHub Pages behind the `coldvault.dev` custom domain. The only
+authoritative origin is `https://coldvault.dev`; see
+[`website/IMPERSONATION.md`](./website/IMPERSONATION.md) for the
+anti-impersonation controls and the one-time DNS setup.
+
+---
+
+## 12. Optional tools
 
 The base devcontainer image ships a lean core stack.  Language-specific and
 heavyweight tools are installed on demand using the bundled installer script.
@@ -407,7 +435,7 @@ Or add the groups you need to the `postCreateCommand` in your fork's
 
 ---
 
-## 12. Contributing / extending
+## 13. Contributing / extending
 
 - Add a new **core** scanner → edit `.devcontainer/Dockerfile` + a wrapper in `scripts/`.
 - Add a new **optional** scanner → edit `.devcontainer/install-optional-tools.sh` + a wrapper in `scripts/`.
@@ -419,7 +447,20 @@ PRs welcome. Do not include real-world malware samples or live secrets.
 
 ---
 
-## 13. License & attribution
+## 14. Forking & responsible reuse rules
+
+- Forks and redistributions must keep `LICENSE`, `DISCLAIMER.md`, and visible
+  attribution to **ZONOVA RESEARCH — https://zonova.io**.
+- Scan scripts now require explicit acknowledgement:
+  `COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only`.
+- This project is for authorized defensive security work only; offensive or
+  unlawful use is prohibited.
+
+See [`DISCLAIMER.md`](./DISCLAIMER.md) and [`LICENSE`](./LICENSE) for full terms.
+
+---
+
+## 15. License & attribution
 
 MIT License — **ZONOVA RESEARCH** variant. See [`LICENSE`](./LICENSE).
 
@@ -428,7 +469,7 @@ If you redistribute or build on this project, credit
 
 ---
 
-## 14. Acknowledgements
+## 16. Acknowledgements
 
 This project assembles, wraps, and credits the work of many open-source teams:
 

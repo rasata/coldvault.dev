@@ -24,6 +24,22 @@ Redistributions in source, binary, or documentation form must visibly credit
 or equivalent public-facing notice.
 
 --------------------------------------------------------------------------------
+FORKING, REDISTRIBUTION, AND HARMFUL-USE RESTRICTIONS
+--------------------------------------------------------------------------------
+
+Forking and redistribution are permitted only if the fork or derivative:
+
+  1. Retains this LICENSE in full, including all disclaimers and restrictions.
+  2. Retains `DISCLAIMER.md` (or an equivalent public disclaimer) without
+     weakening the responsible-use and authorization requirements.
+  3. Preserves visible attribution to "ZONOVA RESEARCH — https://zonova.io".
+
+The Software must not be used, directly or indirectly, for unauthorized access,
+offensive intrusion, malware operations, credential theft, surveillance abuse,
+or any unlawful or harmful cyber activity. Any such use is outside the scope
+of permission granted by this LICENSE.
+
+--------------------------------------------------------------------------------
 NO WARRANTY — COMPLETE DISCLAIMER OF RESPONSIBILITY
 --------------------------------------------------------------------------------
 

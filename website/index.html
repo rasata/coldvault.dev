@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://coldvault.dev/" />
+    <title>Coldvault — Audit untrusted code without ever running it</title>
+    <meta
+      name="description"
+      content="Coldvault.dev is a Web3-grade sandbox by ZONOVA RESEARCH. Audit suspicious repos with Claude Code & 40+ scanners — your machine stays untouched."
+    />
+    <meta name="author" content="ZONOVA RESEARCH" />
+    <meta property="og:title" content="Coldvault — Cold-storage audits for untrusted code" />
+    <meta
+      property="og:description"
+      content="Drop-in Codespace sandbox. Static analysis only. Powered by Claude Code & ZONOVA RESEARCH."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://coldvault.dev/" />
+    <meta property="og:site_name" content="Coldvault" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Early noindex for non-canonical hosts. The React banner takes over after hydration.
+      (function () {
+        try {
+          var h = location.hostname;
+          var ok =
+            h === "coldvault.dev" ||
+            h.endsWith(".coldvault.dev") ||
+            h === "localhost" ||
+            h === "127.0.0.1" ||
+            h === "::1" ||
+            h === "" ||
+            h.endsWith(".local");
+          if (!ok) {
+            var m = document.createElement("meta");
+            m.name = "robots";
+            m.content = "noindex,nofollow,noarchive";
+            document.head.appendChild(m);
+          }
+        } catch (e) {
+          /* noop */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

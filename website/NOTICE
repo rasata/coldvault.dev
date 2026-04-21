@@ -1,0 +1,26 @@
+Coldvault — coldvault.dev
+Copyright (c) ZONOVA RESEARCH
+
+The source code under this directory is distributed under the MIT License
+(see ../LICENSE).
+
+The following are NOT covered by the MIT grant and remain the property of
+ZONOVA RESEARCH:
+
+  • the name "Coldvault" and the domain "coldvault.dev",
+  • the ZONOVA RESEARCH name and any associated logos,
+  • the visual identity, branding, typography, and marketing copy of the
+    Coldvault website,
+  • any wording, claims, or implications of official endorsement.
+
+Forks and derivatives are welcome under the MIT license, but must:
+
+  1. remove or materially alter the Coldvault name, logo, domain references,
+     and visual identity before redistribution;
+  2. not represent themselves as the official Coldvault service or as
+     endorsed by ZONOVA RESEARCH;
+  3. keep the runtime ImpersonationBanner intact, OR replace it with their
+     own identity — not remove it while impersonating the original.
+
+The canonical origin of the site is https://coldvault.dev — any other
+deployment is unofficial.

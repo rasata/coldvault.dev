@@ -2,6 +2,7 @@
 # Supply-chain / SCA pass. Parses lockfiles — never resolves or installs.
 source "$(dirname "$0")/_lib.sh"
 require_target
+enforce_usage_policy_ack
 
 log "osv-scanner (recursive)"
 if has osv-scanner; then
