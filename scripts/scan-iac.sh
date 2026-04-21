@@ -2,6 +2,7 @@
 # IaC / container / Kubernetes scan.
 source "$(dirname "$0")/_lib.sh"
 require_target
+enforce_usage_policy_ack
 
 log "checkov"
 has checkov && checkov -d "$TARGET_DIR" --framework all \

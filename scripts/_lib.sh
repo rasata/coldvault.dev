@@ -40,12 +40,12 @@ abort_if_in_target
 USAGE_ACK_TOKEN="defensive-security-research-only"
 
 enforce_usage_policy_ack() {
-  if [[ "${COLDVAULT_ACCEPTABLE_USE:-}" != "$USAGE_ACK_TOKEN" ]]; then
+  local ack_normalized
+  ack_normalized="$(printf '%s' "${COLDVAULT_ACCEPTABLE_USE:-}" | tr '[:upper:]' '[:lower:]' | xargs)"
+  if [[ "$ack_normalized" != "$USAGE_ACK_TOKEN" ]]; then
     err "Usage policy acknowledgement is required."
     err "Set COLDVAULT_ACCEPTABLE_USE=$USAGE_ACK_TOKEN before running scans."
     err "By setting it, you confirm this project is used only for authorized defensive security work."
     exit 4
   fi
 }
-
-enforce_usage_policy_ack

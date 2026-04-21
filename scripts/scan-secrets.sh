@@ -2,6 +2,7 @@
 # Secrets pass. Never runs verification against live APIs unless VERIFY=1.
 source "$(dirname "$0")/_lib.sh"
 require_target
+enforce_usage_policy_ack
 
 log "gitleaks — current tree"
 if has gitleaks; then
