@@ -41,6 +41,10 @@ jobs:
 
       - name: Build
         env:
+          # Preview URL is rasata.github.io/coldvault.dev/ until the
+          # coldvault.dev custom domain is DNS-verified. Remove VITE_BASE_PATH
+          # below once the custom domain is live so assets load at "/".
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || '/coldvault.dev/' }}
           VITE_OFFICIAL_ORIGIN: coldvault.dev
           VITE_BUILD_COMMIT: ${{ github.sha }}
           VITE_BUILD_REPO: ${{ github.repository }}

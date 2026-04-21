@@ -55,9 +55,11 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
 }
 
 export const getRouter = () => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return createRouter({
     routeTree,
     context: {},
+    basepath: base || "/",
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
