@@ -57,7 +57,12 @@ RUN npm install -g typescript@5.7.3
 # ---------------------------------------------------------------------------
 # gitleaks
 RUN GITLEAKS_VERSION=8.21.2 \
- && curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+ && case "${TARGETARCH}" in \
+      amd64) GITLEAKS_ARCH=x64 ;; \
+      arm64) GITLEAKS_ARCH=arm64 ;; \
+      *) echo "Unsupported TARGETARCH for gitleaks: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+ && curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${GITLEAKS_ARCH}.tar.gz" \
       | tar -xz -C /usr/local/bin gitleaks
 # detect-secrets
 RUN pipx install detect-secrets
