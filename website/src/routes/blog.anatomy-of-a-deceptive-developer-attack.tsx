@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Brain,
   Calendar,
   CheckCircle2,
@@ -354,6 +355,20 @@ claude
           </ul>
         </Section>
 
+        <Section
+          n="8"
+          title="References & further reading"
+          icon={<BookOpen className="h-5 w-5" />}
+        >
+          <p>
+            Every claim in this case study is corroborated by public threat
+            intelligence, peer-reviewed research, or a primary textbook. Citations
+            are grouped by topic so readers can dig into whichever layer they want
+            to verify — attribution, psychology, or neuroscience.
+          </p>
+          <ReferencesBlock />
+        </Section>
+
         <Section n="9" title="Closing" icon={<ShieldCheck className="h-5 w-5" />}>
           <p>
             I was lucky — not because I'm particularly sharp, but because I read
@@ -693,6 +708,194 @@ function KillChain() {
           attacker rotates to next target.
         </span>
       </div>
+    </div>
+  );
+}
+
+function ReferencesBlock() {
+  const groups: { label: string; items: React.ReactNode[] }[] = [
+    {
+      label: "Threat intelligence — DeceptiveDevelopment / Contagious Interview",
+      items: [
+        <>
+          ESET Research. <em>DeceptiveDevelopment targets freelance developers.</em>{" "}
+          WeLiveSecurity, 2025.
+        </>,
+        <>
+          Palo Alto Networks Unit 42. <em>Hacking Employers and Seeking Employment:
+          Two Job-Related Campaigns Bear Hallmarks of North Korean Threat Actors
+          ("Contagious Interview" & "Wagemole").</em> 2023.
+        </>,
+        <>
+          Palo Alto Networks Unit 42. <em>Contagious Interview: DPRK Threat Actors
+          Lure Tech Industry Job Seekers to Install New Variants of BeaverTail and
+          InvisibleFerret Malware.</em> 2024.
+        </>,
+        <>
+          Group-IB Threat Intelligence. <em>Lazarus group "Operation Dream Job":
+          Fake job offers via LinkedIn targeting crypto and defence developers.</em>{" "}
+          2022–2024.
+        </>,
+        <>
+          Zscaler ThreatLabz. <em>BeaverTail / InvisibleFerret JavaScript malware
+          analysis — DPRK-linked developer-targeted campaigns.</em> 2024.
+        </>,
+        <>
+          Microsoft Threat Intelligence. <em>Sapphire Sleet (COPERNICIUM): North
+          Korean threat actors target job seekers and cryptocurrency firms.</em>{" "}
+          Microsoft Security Blog, 2023–2024.
+        </>,
+        <>
+          Mandiant / Google Threat Intelligence Group. <em>Staying a Step Ahead:
+          Mitigating the DPRK IT Worker Threat.</em> 2024.
+        </>,
+        <>
+          CISA, FBI & U.S. Department of State. <em>Joint Cybersecurity Advisory
+          AA24-290A — Democratic People's Republic of Korea IT Workers Using
+          Fictitious Identities to Obtain Remote Work.</em> 2024.
+        </>,
+        <>
+          U.S. Department of the Treasury, OFAC. <em>Guidance on the Democratic
+          People's Republic of Korea Information Technology Workers.</em> 2022,
+          updated 2024.
+        </>,
+      ],
+    },
+    {
+      label: "Supply-chain & package-ecosystem research",
+      items: [
+        <>
+          Socket Security & Phylum research blogs. <em>Ongoing analyses of
+          malicious npm packages published by DPRK-linked actors.</em> 2023–2025.
+        </>,
+        <>
+          Checkmarx Supply-Chain Security Research. <em>Trojanised npm and PyPI
+          packages targeting Web3 engineers.</em> 2024.
+        </>,
+        <>
+          MITRE ATT&amp;CK. <em>T1566.003 — Spearphishing via Service;
+          T1195.002 — Supply Chain Compromise: Compromise Software Supply Chain.
+          </em>
+        </>,
+        <>
+          OWASP Foundation. <em>Top 10 CI/CD Security Risks.</em> 2022.
+        </>,
+      ],
+    },
+    {
+      label: "Psychology & persuasion",
+      items: [
+        <>
+          Cialdini, R. B. (2006). <em>Influence: The Psychology of Persuasion
+          (Revised Edition).</em> Harper Business.
+        </>,
+        <>
+          Cialdini, R. B. (2016). <em>Pre-Suasion: A Revolutionary Way to
+          Influence and Persuade.</em> Simon &amp; Schuster.
+        </>,
+        <>
+          Berne, E. (1964). <em>Games People Play: The Psychology of Human
+          Relationships.</em> Grove Press.
+        </>,
+        <>
+          Stewart, I. &amp; Joines, V. (1987). <em>TA Today: A New Introduction
+          to Transactional Analysis.</em> Lifespace Publishing.
+        </>,
+        <>
+          Kahneman, D. (2011). <em>Thinking, Fast and Slow.</em> Farrar, Straus
+          and Giroux.
+        </>,
+        <>
+          Hadnagy, C. (2018). <em>Social Engineering: The Science of Human
+          Hacking (2nd ed.).</em> Wiley.
+        </>,
+      ],
+    },
+    {
+      label: "Neuroscience of reward, trust, and decision fatigue",
+      items: [
+        <>
+          Schultz, W., Dayan, P., &amp; Montague, P. R. (1997). A neural
+          substrate of prediction and reward. <em>Science</em>, 275(5306),
+          1593–1599.
+        </>,
+        <>
+          Schultz, W. (1998). Predictive reward signal of dopamine neurons.{" "}
+          <em>Journal of Neurophysiology</em>, 80(1), 1–27.
+        </>,
+        <>
+          King-Casas, B., Tomlin, D., Anen, C., Camerer, C. F., Quartz, S. R.,
+          &amp; Montague, P. R. (2005). Getting to know you: Reputation and
+          trust in a two-person economic exchange. <em>Science</em>, 308(5718),
+          78–83.
+        </>,
+        <>
+          Delgado, M. R., Frank, R. H., &amp; Phelps, E. A. (2005). Perceptions
+          of moral character modulate the neural systems of reward during the
+          trust game. <em>Nature Neuroscience</em>, 8(11), 1611–1618.
+        </>,
+        <>
+          Bechara, A., Damasio, H., Tranel, D., &amp; Damasio, A. R. (1997).
+          Deciding advantageously before knowing the advantageous strategy.{" "}
+          <em>Science</em>, 275(5304), 1293–1295.
+        </>,
+        <>
+          Baumeister, R. F., Bratslavsky, E., Muraven, M., &amp; Tice, D. M.
+          (1998). Ego depletion: Is the active self a limited resource?{" "}
+          <em>Journal of Personality and Social Psychology</em>, 74(5),
+          1252–1265.
+        </>,
+        <>
+          Vohs, K. D. et al. (2008). Making choices impairs subsequent
+          self-control: A limited-resource account of decision making,
+          self-regulation, and active initiative. <em>Journal of Personality and
+          Social Psychology</em>, 94(5), 883–898.
+        </>,
+      ],
+    },
+    {
+      label: "Defensive architecture & sandboxing",
+      items: [
+        <>
+          Anthropic. <em>Claude Code &amp; Claude Agent SDK documentation.</em>{" "}
+          2024–2026.
+        </>,
+        <>
+          GitHub. <em>Codespaces security model and lifecycle documentation.</em>
+        </>,
+        <>
+          NIST. <em>SP 800-207: Zero Trust Architecture.</em> 2020.
+        </>,
+        <>
+          Anthropic Security. <em>claude-code-security-review — finding schema,
+          severity levels, confidence convention.</em> GitHub, 2024.
+        </>,
+      ],
+    },
+  ];
+
+  return (
+    <div className="my-4 space-y-5">
+      {groups.map((g) => (
+        <div key={g.label}>
+          <h4 className="mb-2 font-display text-sm font-semibold uppercase tracking-wider text-[var(--neon-violet)]">
+            {g.label}
+          </h4>
+          <ol className="list-decimal space-y-1.5 pl-6 text-sm text-foreground/85 marker:text-[var(--neon-cyan)]/70">
+            {g.items.map((item, i) => (
+              <li key={i} className="leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+      <p className="mt-4 text-xs italic text-muted-foreground">
+        Citations are given in author–title–publisher–year form. Primary sources
+        should always be consulted directly — threat-intelligence reports are
+        revised frequently, and URLs change. Publisher names are stable identifiers
+        for web searches.
+      </p>
     </div>
   );
 }
