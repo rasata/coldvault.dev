@@ -542,6 +542,11 @@ function CTA() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
+              <Link to="/reports/example-payload-analysis">
+                See an example forensic report <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
               <Link to="/blog/anatomy-of-a-deceptive-developer-attack">
                 Read the case study
               </Link>
@@ -574,6 +579,9 @@ function Footer() {
           </Link>
           <Link to="/reports/example-summary" className="hover:text-neon-cyan">
             Example report
+          </Link>
+          <Link to="/reports/example-payload-analysis" className="hover:text-neon-magenta">
+            Forensic report
           </Link>
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-neon-cyan">
             {t.footer.github}

@@ -452,6 +452,11 @@ function CTASection() {
             Example report <ArrowRight className="ml-2 h-4 w-4 rtl:rotate-180" />
           </Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link to="/reports/example-payload-analysis">
+            Example forensic report <ArrowRight className="ml-2 h-4 w-4 rtl:rotate-180" />
+          </Link>
+        </Button>
       </div>
     </section>
   );

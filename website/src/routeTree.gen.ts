@@ -14,6 +14,7 @@ import { Route as CommandsRouteImport } from './routes/commands'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsExampleSummaryRouteImport } from './routes/reports.example-summary'
 import { Route as ReportsExampleScaRouteImport } from './routes/reports.example-sca'
+import { Route as ReportsExamplePayloadAnalysisRouteImport } from './routes/reports.example-payload-analysis'
 import { Route as BlogAnatomyOfADeceptiveDeveloperAttackRouteImport } from './routes/blog.anatomy-of-a-deceptive-developer-attack'
 
 const PlaybookRoute = PlaybookRouteImport.update({
@@ -41,6 +42,12 @@ const ReportsExampleScaRoute = ReportsExampleScaRouteImport.update({
   path: '/reports/example-sca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsExamplePayloadAnalysisRoute =
+  ReportsExamplePayloadAnalysisRouteImport.update({
+    id: '/reports/example-payload-analysis',
+    path: '/reports/example-payload-analysis',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BlogAnatomyOfADeceptiveDeveloperAttackRoute =
   BlogAnatomyOfADeceptiveDeveloperAttackRouteImport.update({
     id: '/blog/anatomy-of-a-deceptive-developer-attack',
@@ -53,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-payload-analysis': typeof ReportsExamplePayloadAnalysisRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
   '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
@@ -61,6 +69,7 @@ export interface FileRoutesByTo {
   '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-payload-analysis': typeof ReportsExamplePayloadAnalysisRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
   '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
@@ -70,6 +79,7 @@ export interface FileRoutesById {
   '/commands': typeof CommandsRoute
   '/playbook': typeof PlaybookRoute
   '/blog/anatomy-of-a-deceptive-developer-attack': typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  '/reports/example-payload-analysis': typeof ReportsExamplePayloadAnalysisRoute
   '/reports/example-sca': typeof ReportsExampleScaRoute
   '/reports/example-summary': typeof ReportsExampleSummaryRoute
 }
@@ -80,6 +90,7 @@ export interface FileRouteTypes {
     | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-payload-analysis'
     | '/reports/example-sca'
     | '/reports/example-summary'
   fileRoutesByTo: FileRoutesByTo
@@ -88,6 +99,7 @@ export interface FileRouteTypes {
     | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-payload-analysis'
     | '/reports/example-sca'
     | '/reports/example-summary'
   id:
@@ -96,6 +108,7 @@ export interface FileRouteTypes {
     | '/commands'
     | '/playbook'
     | '/blog/anatomy-of-a-deceptive-developer-attack'
+    | '/reports/example-payload-analysis'
     | '/reports/example-sca'
     | '/reports/example-summary'
   fileRoutesById: FileRoutesById
@@ -105,6 +118,7 @@ export interface RootRouteChildren {
   CommandsRoute: typeof CommandsRoute
   PlaybookRoute: typeof PlaybookRoute
   BlogAnatomyOfADeceptiveDeveloperAttackRoute: typeof BlogAnatomyOfADeceptiveDeveloperAttackRoute
+  ReportsExamplePayloadAnalysisRoute: typeof ReportsExamplePayloadAnalysisRoute
   ReportsExampleScaRoute: typeof ReportsExampleScaRoute
   ReportsExampleSummaryRoute: typeof ReportsExampleSummaryRoute
 }
@@ -146,6 +160,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsExampleScaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/example-payload-analysis': {
+      id: '/reports/example-payload-analysis'
+      path: '/reports/example-payload-analysis'
+      fullPath: '/reports/example-payload-analysis'
+      preLoaderRoute: typeof ReportsExamplePayloadAnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/anatomy-of-a-deceptive-developer-attack': {
       id: '/blog/anatomy-of-a-deceptive-developer-attack'
       path: '/blog/anatomy-of-a-deceptive-developer-attack'
@@ -162,6 +183,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlaybookRoute: PlaybookRoute,
   BlogAnatomyOfADeceptiveDeveloperAttackRoute:
     BlogAnatomyOfADeceptiveDeveloperAttackRoute,
+  ReportsExamplePayloadAnalysisRoute: ReportsExamplePayloadAnalysisRoute,
   ReportsExampleScaRoute: ReportsExampleScaRoute,
   ReportsExampleSummaryRoute: ReportsExampleSummaryRoute,
 }
