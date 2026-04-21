@@ -2,6 +2,7 @@
 # Multi-language SAST. Semgrep + language-native analyzers.
 source "$(dirname "$0")/_lib.sh"
 require_target
+enforce_usage_policy_ack
 
 log "Semgrep — curated security packs"
 if has semgrep; then

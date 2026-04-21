@@ -62,6 +62,7 @@ cd coldvault.dev
 # → Click "Open in GitHub Codespaces"
 gh auth login && claude login
 git submodule add <SUSPECT-REPO-URL> target/
+export COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only
 claude    # then type /audit
 ```
 
@@ -326,11 +327,14 @@ claude login              # Claude Code auth
 # 4. Attach the suspect repo as a READ-ONLY submodule
 git submodule add --depth=1 https://github.com/<suspect>/<repo>.git target/
 
-# 5. Launch the audit
+# 5. Acknowledge defensive-use policy (required by scan scripts)
+export COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only
+
+# 6. Launch the audit
 claude
 #   > /audit
 
-# 6. Open reports/SUMMARY.md
+# 7. Open reports/SUMMARY.md
 ```
 
 ---
@@ -346,7 +350,20 @@ PRs welcome. Do not include real-world malware samples or live secrets.
 
 ---
 
-## 12. License & attribution
+## 12. Forking & responsible reuse rules
+
+- Forks and redistributions must keep `LICENSE`, `DISCLAIMER.md`, and visible
+  attribution to **ZONOVA RESEARCH — https://zonova.io**.
+- Scan scripts now require explicit acknowledgement:
+  `COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only`.
+- This project is for authorized defensive security work only; offensive or
+  unlawful use is prohibited.
+
+See [`DISCLAIMER.md`](./DISCLAIMER.md) and [`LICENSE`](./LICENSE) for full terms.
+
+---
+
+## 13. License & attribution
 
 MIT License — **ZONOVA RESEARCH** variant. See [`LICENSE`](./LICENSE).
 
@@ -355,7 +372,7 @@ If you redistribute or build on this project, credit
 
 ---
 
-## 13. Acknowledgements
+## 14. Acknowledgements
 
 This project assembles, wraps, and credits the work of many open-source teams:
 

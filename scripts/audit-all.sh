@@ -3,6 +3,7 @@
 # Intended to be invoked by Claude's /audit command, or manually.
 source "$(dirname "$0")/_lib.sh"
 require_target
+enforce_usage_policy_ack
 
 START=$(date +%s)
 log "coldvault.dev — full audit starting"
