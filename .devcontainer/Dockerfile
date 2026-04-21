@@ -100,8 +100,14 @@ RUN OSV_VERSION=1.9.1 \
 # 5. Core IaC / container linting
 # ---------------------------------------------------------------------------
 # hadolint — Dockerfile best-practice linter
-RUN curl -fsSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 \
-      -o /usr/local/bin/hadolint && chmod +x /usr/local/bin/hadolint
+RUN case "${TARGETARCH}" in \
+       amd64) HADOLINT_ARCH=x86_64 ;; \
+       arm64) HADOLINT_ARCH=arm64 ;; \
+       *) echo "Unsupported TARGETARCH for hadolint: ${TARGETARCH}" >&2; exit 1 ;; \
+   esac \
+ && curl -fsSL "https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-${HADOLINT_ARCH}" \
+      -o /usr/local/bin/hadolint \
+ && chmod +x /usr/local/bin/hadolint
 
 # ---------------------------------------------------------------------------
 # 6. Core malware / YARA
