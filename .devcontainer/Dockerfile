@@ -42,8 +42,8 @@ ENV PATH=/usr/local/go/bin:$PATH
 # system-wide without needing user-specific .local/bin entries.
 ENV PIPX_BIN_DIR=/usr/local/bin
 
-# Node.js LTS (via NodeSource)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+# Node.js + npm (via Debian 12 repos for reliable CI/prebuild resolution)
+RUN apt-get update \
  && apt-get install -y --no-install-recommends nodejs npm \
  && rm -rf /var/lib/apt/lists/*
 
