@@ -20,7 +20,7 @@ official site. The `ImpersonationBanner` component enforces this at runtime.
 
 | Control | File | What it does |
 |---|---|---|
-| Custom-domain lock | `website/public/CNAME` | Pages only serves `coldvault.dev` from the repo that verified the domain. |
+| Custom-domain lock | `CUSTOM_DOMAIN` repo variable → workflow writes `dist/CNAME` | Pages only serves `coldvault.dev` from the repo that verified the domain. |
 | Runtime banner | `src/components/impersonation-banner.tsx` | Shows a red "unofficial copy" banner when `location.hostname` isn't `coldvault.dev`. |
 | Canonical link | `index.html` | `<link rel="canonical" href="https://coldvault.dev/">` — search engines attribute value to the official origin. |
 | Conditional `noindex` | `index.html` + banner | Non-canonical hosts inject `<meta name="robots" content="noindex,nofollow,noarchive">`. |
@@ -31,26 +31,33 @@ official site. The `ImpersonationBanner` component enforces this at runtime.
 
 Required to make the custom domain tamper-resistant:
 
-1. **Verify `coldvault.dev` at the organisation / account level.**
-   - GitHub → Settings → Pages → *Add a verified domain*
-   - Add the provided `_github-pages-challenge-<user>` TXT record to DNS.
-   - Once verified, **no other GitHub Pages site can claim `coldvault.dev`** —
-     even if someone forks this repo and sets the same CNAME, GitHub will
-     reject it.
-2. **Enforce HTTPS** in Settings → Pages (checkbox).
-3. **DNS at the registrar**: `A`/`ALIAS` pointing to GitHub Pages IPs, plus
-   `AAAA` for IPv6. For apex `coldvault.dev`:
+1. **DNS at the registrar** — `A` records on apex `coldvault.dev` pointing
+   to GitHub Pages IPs, and `AAAA` for IPv6:
    ```
    185.199.108.153
    185.199.109.153
    185.199.110.153
    185.199.111.153
    ```
-4. **CAA record** — restrict who can issue a TLS certificate for the domain:
+2. **Verify `coldvault.dev` at the organisation / account level.**
+   - GitHub → Settings → Pages → *Add a verified domain*
+   - Add the provided `_github-pages-challenge-<user>` TXT record to DNS.
+   - Once verified, **no other GitHub Pages site can claim `coldvault.dev`** —
+     even if someone forks this repo and sets the same CNAME, GitHub will
+     reject it.
+3. **Flip the repo variables** to publish the artifact at the custom domain:
+   - Settings → Secrets and variables → Actions → Variables →
+     `CUSTOM_DOMAIN = coldvault.dev` (makes the workflow write `dist/CNAME`).
+   - Same panel → `VITE_BASE_PATH = /` (assets load from root).
+   - Trigger a deploy (`gh workflow run deploy-pages.yml`). GitHub Pages
+     starts serving at `https://coldvault.dev` and redirects the default
+     `rasata.github.io/coldvault.dev/` URL to it.
+4. **Enforce HTTPS** in Settings → Pages (checkbox).
+5. **CAA record** — restrict who can issue a TLS certificate for the domain:
    ```
    coldvault.dev. CAA 0 issue "letsencrypt.org"
    ```
-5. Optional but recommended: **publish a `.well-known/security.txt`** under
+6. Optional but recommended: **publish a `.well-known/security.txt`** under
    `website/public/.well-known/security.txt` with a PGP-signed contact.
 
 ## 4. What this does *not* protect against

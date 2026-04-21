@@ -53,6 +53,10 @@ jobs:
       - name: SPA 404 fallback
         run: cp dist/index.html dist/404.html
 
+      - name: Write CNAME when custom domain is configured
+        if: ${{ vars.CUSTOM_DOMAIN != '' }}
+        run: echo "${{ vars.CUSTOM_DOMAIN }}" > dist/CNAME
+
       - name: Stamp build provenance
         run: |
           cat > dist/build-provenance.json <<EOF
