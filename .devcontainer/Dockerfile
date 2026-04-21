@@ -17,7 +17,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl wget gnupg lsb-release apt-transport-https \
       software-properties-common unzip zip xz-utils tar zstd jq ripgrep fd-find \
-      git git-lfs openssh-client gh \
+      git git-lfs openssh-client \
       build-essential make cmake ninja-build pkg-config \
       python3 python3-pip python3-venv python3-dev pipx \
       default-jdk maven gradle \
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       shellcheck \
       binutils file strace ltrace gdb \
       yara libyara-dev \
-      clamav clamav-freshclam clamav-daemon \
+      clamav clamav-freshclam \
       libssl-dev libffi-dev libxml2-dev libxslt1-dev libyaml-dev \
       bsdmainutils vim nano tmux htop tree less man-db locales sudo \
   && rm -rf /var/lib/apt/lists/*
@@ -68,6 +68,11 @@ ENV PATH=/usr/local/go/bin:$PATH
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
  && rm -rf /var/lib/apt/lists/*
+
+# Pin TypeScript to a known-good 5.x to avoid TS5107 (target=ES5 deprecation
+# hard-error introduced in TS 6+) breaking downstream npm builds that consume
+# the globally-available tsc.
+RUN npm install -g typescript@5.7.3
 
 # Rust toolchain (stable)
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo PATH=/usr/local/cargo/bin:$PATH
