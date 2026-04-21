@@ -17,15 +17,17 @@
 
 A **public, reproducible audit environment** that lets a security analyst (or
 a Claude Code agent) statically review an untrusted repository without ever
-executing its code. Every scanner — SAST, SCA, secrets, malware, IaC, container,
-binary, SBOM — is pre-installed in a Debian devcontainer so that spinning up a
-new audit takes under a minute.
+executing its code. A curated set of core scanners — SAST, SCA, secrets,
+malware, IaC — is pre-baked into a lean Debian devcontainer. Language-specific
+and heavyweight optional tools can be added on demand in under a minute.
 
 **Design tenets**
 
 - 🧊 **Never run untrusted code.** The suspect repo is mounted as a read-only
   git submodule under `target/`. All analysis is static.
-- 📦 **Batteries included.** 40+ tools pre-baked into the Codespace image.
+- 🪶 **Lean core, extensible.** The base image ships only the tools needed for
+  a full general-purpose audit. Optional tool groups (Rust, Java, PHP, C/C++,
+  extra scanners…) are installed on demand via a single script.
 - 🤖 **Agent-assisted.** A curated set of Claude Code **skills** (inspired by
   [`trailofbits/skills`][tob], [`anthropics/claude-code-security-review`][acs]
   and Snyk's workflow) turn the analyst's intent into reproducible scans.
@@ -185,7 +187,7 @@ flowchart LR
     subgraph CODESPACE["GitHub Codespace (ephemeral VM)"]
       direction TB
       CL[Claude Code CLI]
-      FS[".devcontainer image<br/>~40 security tools"]
+      FS[".devcontainer image<br/>core security tools"]
       TG[target/ submodule<br/>READ-ONLY]
       RS[reports/]
     end
@@ -227,9 +229,10 @@ flowchart LR
 ```
 .
 ├── .devcontainer/
-│   ├── Dockerfile             # Debian + 40+ security tools
+│   ├── Dockerfile             # Debian + core security tools (minimal base)
 │   ├── devcontainer.json      # Codespace config, no-new-privileges, dropped caps
-│   └── post-create.sh         # Signature refresh, smoke-test
+│   ├── post-create.sh         # DB warm-up, core tool smoke-test
+│   └── install-optional-tools.sh  # On-demand optional tool groups
 ├── .claude/
 │   ├── settings.json          # Restrictive permissions for target/
 │   ├── commands/              # /audit, /scan-secrets, /scan-deps, /scan-malware, /security-review
@@ -339,7 +342,7 @@ claude
 
 ---
 
-## 10bis. The coldvault.dev website
+## 11. The coldvault.dev website
 
 The public landing page served at <https://coldvault.dev> lives in this same
 repo under [`website/`](./website) — a Vite + React + TanStack Router static
@@ -363,9 +366,90 @@ anti-impersonation controls and the one-time DNS setup.
 
 ---
 
-## 11. Contributing / extending
+## 12. Optional tools
 
-- Add a new scanner → edit `.devcontainer/Dockerfile` + a wrapper in `scripts/`.
+The base devcontainer image ships a lean core stack.  Language-specific and
+heavyweight tools are installed on demand using the bundled installer script.
+
+### Core tools (always in image)
+
+| Tool           | Purpose                                            |
+|----------------|----------------------------------------------------|
+| `semgrep`      | Multi-language SAST + rules cache                  |
+| `gitleaks`     | Secret scanning                                    |
+| `detect-secrets` | Secret scanning (complementary)                  |
+| `bandit`       | Python SAST                                        |
+| `gosec`        | Go SAST                                            |
+| `govulncheck`  | Go dependency vulnerability check                  |
+| `trivy`        | SCA, IaC config, container scanning, SBOM          |
+| `osv-scanner`  | Lockfile-based SCA (fast)                          |
+| `hadolint`     | Dockerfile linting                                 |
+| `yara`         | YARA rule scanning (+ community + signature-base)  |
+| `Claude Code CLI` | AI-assisted audit orchestration                 |
+
+### Installing optional tool groups
+
+```bash
+# Install everything (all groups)
+bash .devcontainer/install-optional-tools.sh
+
+# Install one or more specific groups
+bash .devcontainer/install-optional-tools.sh rust
+bash .devcontainer/install-optional-tools.sh sca iac
+```
+
+When run as a non-root user (the default `vscode` devcontainer user), the
+installer automatically redirects `pipx`, `npm -g`, and `go install` outputs
+to user-writable paths (`~/.local/bin`, `~/.npm-global/bin`, `~/go/bin`) — no
+`sudo` required for those operations. Only `apt-get` and system-level package
+operations still use `sudo`.
+
+> **Note:** Add the user paths to your shell profile to make them permanent:
+> ```bash
+> export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/go/bin:$PATH"
+> ```
+
+### Available groups
+
+| Group     | Tools installed                                                                      |
+|-----------|--------------------------------------------------------------------------------------|
+| `secrets` | trufflehog, ggshield                                                                 |
+| `sast`    | njsscan, dlint, safety, pip-audit, cfn-lint, sqlfluff, eslint + security plugins, retire, snyk, staticcheck, errcheck, gocritic |
+| `sca`     | grype, syft, dependency-check (requires `java` group), cyclonedx-bom, cdxgen  |
+| `iac`     | tfsec, terrascan, checkov, kube-score, kubesec, dockle                               |
+| `malware` | capa, oletools (+ pefile), binwalk, malwoverview                             |
+| `rust`    | Rust toolchain (stable), cargo-audit, cargo-deny, cargo-geiger, cargo-outdated, yara-x-cli |
+| `java`    | JDK, Maven, Gradle                                                                   |
+| `php`     | php-cli, composer, psalm, phpstan, enlightn/security-checker                         |
+| `ruby`    | ruby, brakeman, bundler-audit, ruby_audit                                            |
+| `cpp`     | clang, clang-tools, clang-tidy, cppcheck, flawfinder, splint                         |
+| `reverse` | radare2, gdb, strace, ltrace                                                         |
+
+> **Tip:** The installer is idempotent — re-running it for a group that is
+> already installed is safe.
+
+### Baking optional tools into a custom image
+
+If you regularly use a set of optional tools, create a derived image:
+
+```dockerfile
+FROM ghcr.io/rasata/coldvault.dev:latest
+RUN bash .devcontainer/install-optional-tools.sh rust sca malware
+```
+
+Or add the groups you need to the `postCreateCommand` in your fork's
+`devcontainer.json`:
+
+```json
+"postCreateCommand": "bash .devcontainer/post-create.sh && bash .devcontainer/install-optional-tools.sh rust sca"
+```
+
+---
+
+## 13. Contributing / extending
+
+- Add a new **core** scanner → edit `.devcontainer/Dockerfile` + a wrapper in `scripts/`.
+- Add a new **optional** scanner → edit `.devcontainer/install-optional-tools.sh` + a wrapper in `scripts/`.
 - Add a new Claude skill → drop a `SKILL.md` under `.claude/skills/<name>/`.
 - Add project-specific Semgrep rules → `rules/semgrep/*.yml`.
 - Add project-specific YARA rules → `rules/yara/*.yar`.
@@ -374,7 +458,7 @@ PRs welcome. Do not include real-world malware samples or live secrets.
 
 ---
 
-## 12. Forking & responsible reuse rules
+## 14. Forking & responsible reuse rules
 
 - Forks and redistributions must keep `LICENSE`, `DISCLAIMER.md`, and visible
   attribution to **ZONOVA RESEARCH — https://zonova.io**.
@@ -387,7 +471,7 @@ See [`DISCLAIMER.md`](./DISCLAIMER.md) and [`LICENSE`](./LICENSE) for full terms
 
 ---
 
-## 13. License & attribution
+## 15. License & attribution
 
 MIT License — **ZONOVA RESEARCH** variant. See [`LICENSE`](./LICENSE).
 
@@ -396,7 +480,7 @@ If you redistribute or build on this project, credit
 
 ---
 
-## 14. Acknowledgements
+## 16. Acknowledgements
 
 This project assembles, wraps, and credits the work of many open-source teams:
 
