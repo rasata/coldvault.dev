@@ -186,8 +186,17 @@ RUN DC_VERSION=10.0.4 \
 # ---------------------------------------------------------------------------
 # 5. IaC / container / Kubernetes scanners
 # ---------------------------------------------------------------------------
-# tfsec
-RUN curl -fsSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+# tfsec (pinned binary; upstream install script can break when GitHub API output changes)
+ARG TFSEC_VERSION=1.28.14
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) tfsec_arch=amd64 ;; \
+      arm64) tfsec_arch=arm64 ;; \
+      *) echo "[coldvault] unsupported TARGETARCH for tfsec: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-${tfsec_arch}" \
+      -o /usr/local/bin/tfsec; \
+    chmod +x /usr/local/bin/tfsec
 # terrascan
 RUN TS_VERSION=1.19.9 \
  && curl -fsSL "https://github.com/tenable/terrascan/releases/download/v${TS_VERSION}/terrascan_${TS_VERSION}_Linux_x86_64.tar.gz" \
