@@ -8,7 +8,7 @@
 # No code from target/ is ever executed.
 
 FROM golang:1.23.4-bookworm AS go_toolchain
-FROM aquasec/trivy:latest AS trivy_bin
+FROM aquasec/trivy:0.57.1 AS trivy_bin
 
 FROM mcr.microsoft.com/devcontainers/base:debian-12
 
