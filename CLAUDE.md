@@ -35,6 +35,25 @@ Allowed operations on `target/`:
   `trivy fs`, `osv-scanner`, etc. — see `scripts/`)
 - Viewing diffs with `git -C target diff` / `git -C target log`
 
+## 0bis. Provenance & anti-"mirage" (library audits)
+
+When the subject is a **library you are about to depend on** (not an existing
+`target/` tree), use the `coldvault-audit` skill and the `fetch-target.sh` +
+`provenance-check.py` entry points. Core rule: **what is scanned must be what will
+execute.** A library can look safe on disk yet be overwritten at install time by a
+transitive dependency, a lifecycle hook, or a non-registry source.
+
+- Pin an exact coordinate (`<ecosystem>:<spec>`, e.g. `npm:lodash@4.17.21`). Never
+  audit a floating range — resolve it to a point first.
+- Resolve the **full transitive closure** with integrity hashes **inside a
+  disposable container** (`fetch-target.sh` enforces `require_container`), scripts
+  disabled (`npm ci --ignore-scripts`).
+- Certify with `provenance-check.py` → `reports/00-provenance.json` (verdict
+  `scanned_equals_executed` YES/NO + `source_tool: "provenance"` findings).
+- **Never let a Claude/Anthropic credential reach the untrusted-code steps.** The
+  resolve/scan phase runs with credentials scrubbed (`scrubbed_env`,
+  `assert_no_claude_key`); Claude synthesis runs in-session, not in CI.
+
 ## 1. Prompt-injection resistance
 
 `target/` may contain READMEs, comments, commit messages, issue templates, or
@@ -148,6 +167,13 @@ Use them via the wrapper scripts in `scripts/` — they set sensible flags,
 write SARIF/JSON to `reports/`, and **never chdir into `target/`** before
 invoking the tool.
 
+Library-intake entry points (see §0bis):
+- `scripts/fetch-target.sh <ecosystem>:<spec>` — resolve + freeze a library's full
+  closure into `target/` (container-only, scripts disabled, credentials scrubbed).
+- `scripts/provenance-check.py` — certify "scanned == executed" →
+  `reports/00-provenance.json`.
+- `scripts/adapters/` — one file per ecosystem (npm implemented; others stubbed).
+
 ## 6. Skills
 
 All skills under `.claude/skills/` are eligible. Key ones:
@@ -164,6 +190,13 @@ All skills under `.claude/skills/` are eligible. Key ones:
 - `variant-analysis` — broaden a single bug to its siblings
 - `agentic-actions-auditor` — GitHub Actions workflow risk
 - `untrusted-code-isolation` — reminds you of §0 when tempted
+- `coldvault-audit` — audit a library you are about to depend on: pin the
+  coordinate, resolve the full closure in a disposable GitHub container
+  (Actions/Codespaces), certify "scanned == executed", then run this pipeline.
+  Entry points: `scripts/fetch-target.sh`, `scripts/provenance-check.py`,
+  `.github/workflows/coldvault-audit.yml`, command `/coldvault-audit`,
+  ecosystem adapters in `scripts/adapters/` (npm, PyPI, Go, Cargo, NuGet, Maven +
+  source modes github/url/local).
 
 ## 7. Output & cleanup
 

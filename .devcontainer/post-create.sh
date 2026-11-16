@@ -49,9 +49,16 @@ cat <<'EOF'
 
   1) Authenticate GitHub:     gh auth login
   2) Authenticate Claude:     claude login
+
+  Audit a whole repo:
   3) Add suspect repo:        git submodule add <url> target/
-  4) Launch Claude audit:     claude
-     → then: /audit
+  4) Launch Claude audit:     claude   → then: /audit
+
+  Or audit a single library (resolves its full closure here, scripts OFF):
+     export COLDVAULT_ACCEPTABLE_USE=defensive-security-research-only
+     bash scripts/fetch-target.sh npm:lodash@4.17.21
+     python3 scripts/provenance-check.py && claude   → then: /audit
+     (from your host instead: gh workflow run coldvault-audit.yml -f source=npm:<pkg>@<ver>)
 
   Optional tools (Rust, Java, PHP, Ruby, C/C++, extra scanners):
      bash .devcontainer/install-optional-tools.sh           # install all

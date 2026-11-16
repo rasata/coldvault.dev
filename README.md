@@ -70,6 +70,54 @@ claude    # then type /audit
 
 ---
 
+## 2bis. Audit a library in one command (`coldvault-audit`)
+
+Instead of wiring a submodule by hand, point the **`coldvault-audit`** skill at a
+library you are about to depend on. It pins the exact coordinate, resolves the
+**full transitive dependency closure** with integrity hashes **inside a disposable
+GitHub container**, certifies that *what is scanned is what will execute*, runs the
+pipeline below, and returns a go/no-go report.
+
+```bash
+# Install the portable skill once (available from any project afterwards):
+./install-skill.sh                 # symlinks /coldvault-audit into ~/.claude
+gh auth status                     # a GitHub account is required
+
+# Then, from any project, ask Claude:
+#   /coldvault-audit npm:lodash@4.17.21
+#
+# Under the hood it dispatches to your coldvault fork and pulls results back:
+gh workflow run coldvault-audit.yml -f source=npm:lodash@4.17.21
+gh run watch && gh run download -n coldvault-reports -D reports/
+```
+
+**Why a container, and why no API key in CI.** Resolving a dependency tree can
+trigger install hooks (`postinstall`, `setup.py`, `build.rs`). That runs only in an
+ephemeral GitHub Actions runner / Codespace — never on your machine — and that
+runner carries **no Claude credential**, so a malicious hook cannot exfiltrate one.
+The Claude-driven synthesis runs back in your session after `gh run download`.
+
+**The "mirage" it defends against.** A library can look safe on disk yet install
+something else — a transitive dependency overwrites it, a lifecycle hook pulls code
+at install time, or a dependency resolves from a mutable non-registry source.
+`reports/00-provenance.json` carries the verdict **"scanned == executed? YES/NO"**
+and flags each divergence (non-registry deps, `overrides`/`resolutions`, install
+hooks, missing integrity). See
+[`.claude/skills/coldvault-audit/`](./.claude/skills/coldvault-audit/).
+
+**Ecosystems.** Package managers with full integrity-pinned closure resolution:
+**npm, PyPI, Go, Cargo (Rust), NuGet (.NET), Maven (Java)** — npm/pip ship in the
+base image, the rest install via `.devcontainer/install-optional-tools.sh` (an
+adapter fails cleanly if its toolchain is absent). Source modes **github** (clone
+at an exact SHA), **url** (tarball/sdist) and **local** (on-disk library) audit the
+exact source without a registry closure, flagging it as uncertified unless a
+lockfile is committed. All sit behind a pluggable adapter interface
+(`scripts/adapters/`, see
+[`adapter-interface.md`](./.claude/skills/coldvault-audit/references/adapter-interface.md))
+— adding another stack is a single new adapter file.
+
+---
+
 ## 3. What gets scanned (and with what)
 
 ```mermaid
@@ -235,21 +283,27 @@ flowchart LR
 │   └── install-optional-tools.sh  # On-demand optional tool groups
 ├── .claude/
 │   ├── settings.json          # Restrictive permissions for target/
-│   ├── commands/              # /audit, /scan-secrets, /scan-deps, /scan-malware, /security-review
-│   └── skills/                # 15+ curated security skills
+│   ├── commands/              # /audit, /coldvault-audit, /scan-*, /security-review
+│   └── skills/                # curated security skills (incl. coldvault-audit)
+├── .github/workflows/
+│   ├── deploy-pages.yml       # Website deploy
+│   └── coldvault-audit.yml    # On-demand isolated library audit (workflow_dispatch)
 ├── scripts/                   # Bash wrappers (SARIF/JSON output to reports/)
 │   ├── audit-all.sh
+│   ├── fetch-target.sh        # Resolve + freeze a library closure into target/ (container-only)
+│   ├── provenance-check.py    # Certify "scanned == executed" → reports/00-provenance.json
+│   ├── adapters/              # One file per ecosystem (npm/pypi/go/cargo/nuget/maven + github/url/local)
 │   ├── scan-secrets.sh
 │   ├── scan-deps.sh
 │   ├── scan-sast.sh
 │   ├── scan-malware.sh
-│   ├── scan-iac.sh
-│   └── scan-containers.sh
+│   └── scan-iac.sh
 ├── rules/
 │   ├── semgrep/               # Custom project-specific rules
 │   └── yara/                  # Custom malware signatures
 ├── reports/                   # (gitignored) — audit output lives here
-├── target/                    # Suspect code (git submodule)
+├── target/                    # Suspect code (git submodule or fetched closure)
+├── install-skill.sh           # Install portable /coldvault-audit into ~/.claude
 ├── CLAUDE.md                  # Audit protocol & safety rules
 ├── LICENSE                    # MIT — ZONOVA RESEARCH variant
 └── README.md
@@ -279,6 +333,7 @@ action][acs], and Snyk's Code/OS workflow:
 | `agentic-actions-auditor`        | `.github/workflows/**` risk (pull_request_target, etc.) |
 | `constant-time-analysis`         | Timing-leak review in crypto code                      |
 | `security-review`                | PR-style review in Anthropic's JSON finding schema     |
+| `coldvault-audit`                | Audit a library before you depend on it: pin coordinate, resolve closure in a disposable GitHub container, certify "scanned == executed", run the pipeline |
 
 See [`.claude/skills/`](./.claude/skills) for full documentation of each.
 
@@ -288,6 +343,7 @@ See [`.claude/skills/`](./.claude/skills) for full documentation of each.
 
 ```text
 /audit              Full pipeline — context → secrets → SCA → SAST → malware → report
+/coldvault-audit    Audit a library by coordinate (npm:pkg@ver) in a disposable GitHub container
 /scan-secrets       Run secret scanners only
 /scan-deps          Supply-chain / SCA pass only
 /scan-sast          Static analysis pass only

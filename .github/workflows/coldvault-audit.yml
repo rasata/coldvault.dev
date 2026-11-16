@@ -1,0 +1,113 @@
+name: Coldvault library audit
+
+# On-demand, isolated audit of an untrusted library in a disposable runner.
+# Dispatch from your host with:
+#   gh workflow run coldvault-audit.yml -f source=npm:lodash@4.17.21
+# then:
+#   gh run watch   &&   gh run download   (pulls reports/ as an artifact)
+#
+# SECURITY MODEL
+#  * This job resolves an untrusted dependency closure, which can trigger install
+#    hooks. It therefore runs in an EPHEMERAL runner, inside the coldvault
+#    devcontainer, with scripts disabled by fetch-target.sh.
+#  * permissions are read-only and NO secrets are exposed. In particular there is
+#    deliberately NO ANTHROPIC_API_KEY / Claude credential here: the Claude-driven
+#    synthesis (findings narrative, SUMMARY.html) runs back in your session after
+#    `gh run download`, so a malicious hook can never reach a Claude key.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Coordinate to audit, e.g. npm:lodash@4.17.21"
+        required: true
+        type: string
+      ref:
+        description: "Optional ref/SHA (used by the github ecosystem adapter)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # One audit at a time per dispatched coordinate keeps artifact names clean.
+  group: coldvault-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout coldvault sandbox
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      # Injection-safe: the untrusted coordinate is passed via env, never
+      # interpolated into a shell line. Validated before use.
+      - name: Validate & export coordinate
+        env:
+          SRC: ${{ inputs.source }}
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$SRC" | grep -qE '^[a-z]+:[A-Za-z0-9@._/+=:~^-]+$'; then
+            echo "::error::Invalid source coordinate '$SRC' (expected <ecosystem>:<spec>)."
+            exit 1
+          fi
+          {
+            echo "COLDVAULT_SOURCE=$SRC"
+            [ -n "${REF:-}" ] && echo "COLDVAULT_REF=$REF"
+          } >> "$GITHUB_ENV"
+
+      # Build & run inside the pre-baked devcontainer so the full scanner stack
+      # (semgrep, trivy, grype, gitleaks, yara, …) is present.
+      - name: Fetch, certify provenance, and scan (in devcontainer)
+        uses: devcontainers/ci@v0.3
+        env:
+          # Forwarded into the container; NONE are Claude credentials.
+          COLDVAULT_ACCEPTABLE_USE: defensive-security-research-only
+          COLDVAULT_IN_CONTAINER: "1"
+          COLDVAULT_OVERWRITE_TARGET: "1"
+        with:
+          push: never
+          env: |
+            COLDVAULT_SOURCE
+            COLDVAULT_REF
+            COLDVAULT_ACCEPTABLE_USE
+            COLDVAULT_IN_CONTAINER
+            COLDVAULT_OVERWRITE_TARGET
+          runCmd: |
+            set -euo pipefail
+            eco="${COLDVAULT_SOURCE%%:*}"
+            echo "::group::install toolchain for '$eco' if needed"
+            case "$eco" in
+              cargo) bash .devcontainer/install-optional-tools.sh rust  ; [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env" || true ;;
+              maven) bash .devcontainer/install-optional-tools.sh java  ;;
+              nuget) bash .devcontainer/install-optional-tools.sh dotnet; export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$PATH" ;;
+              *)     echo "npm/pypi/go/github/url/local use the base image toolchain." ;;
+            esac
+            echo "::endgroup::"
+            echo "::group::fetch-target (resolve closure, scripts OFF)"
+            bash scripts/fetch-target.sh "$COLDVAULT_SOURCE"
+            echo "::endgroup::"
+            echo "::group::provenance certification (scanned == executed?)"
+            python3 scripts/provenance-check.py
+            echo "::endgroup::"
+            echo "::group::deterministic scanners (secrets/deps/sast/iac/malware)"
+            bash scripts/audit-all.sh || true
+            echo "::endgroup::"
+            echo "Raw scanner outputs + provenance report are in reports/."
+            echo "Claude-driven synthesis (findings.json narrative, SUMMARY.html)"
+            echo "runs in your session after 'gh run download'."
+
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coldvault-reports
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 7
