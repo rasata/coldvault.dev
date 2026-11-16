@@ -22,10 +22,21 @@
 
 ADAPTERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Ordered list of known ecosystems. Package managers resolve a full integrity-
-# pinned closure (npm pypi go cargo nuget maven); source modes audit exact source
-# without a registry closure (github url local). Add a stack = one more adapter file.
-COLDVAULT_ECOSYSTEMS=(npm pypi go cargo nuget maven github url local)
+# Ordered list of known ecosystems.
+#  - Direct coordinate resolution, full integrity-pinned closure, scripts OFF:
+#      npm pypi go cargo nuget maven composer pub rubygems swift
+#  - Source-audited (resolution would run recipe/build code): their coordinate
+#    resolve points you at local:/github:, where the analyzer parses the committed
+#    lockfile without executing anything:
+#      julia conan vcpkg cran deno cocoapods
+#  - Generic source modes:
+#      github url local  (+ native build-system detection for C/C++/nginx/php-ext)
+# Add a stack = one more adapter file + one analyze_<eco> in provenance-check.py.
+COLDVAULT_ECOSYSTEMS=(
+  npm pypi go cargo nuget maven composer pub rubygems swift
+  julia conan vcpkg cran deno cocoapods
+  github url local
+)
 
 # Parse "<ecosystem>:<spec>" into COORD_ECO / COORD_SPEC. If no "<eco>:" prefix,
 # we refuse to guess — pinning the ecosystem is part of provenance certification.

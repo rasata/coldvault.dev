@@ -34,9 +34,23 @@ Any mismatch between these is a provenance finding.
   contentHash; package MSBuild `.targets`/`.props` flagged.
 - **Maven:** `mvn dependency:copy-dependencies` + `dependency:tree` (no build);
   `.sha1` checksums; SNAPSHOT (mutable) versions flagged.
+- **Composer (PHP):** `composer require --no-scripts --no-plugins`; `dist.shasum`;
+  VCS sources, plugins, lifecycle scripts and custom repositories flagged.
+- **pub (Dart):** `dart pub get`; sha256 per hosted package; git/path sources flagged.
+- **RubyGems:** `bundle lock` + `bundle cache --no-install` (no native builds);
+  GIT sources and non-rubygems.org remotes flagged.
+- **SwiftPM:** `swift package resolve`; git revision pins; branch pins flagged, and
+  manifest evaluation at resolve time noted.
+- **Source-audited (no coordinate resolution — read a committed lockfile):**
+  Julia (`Manifest.toml`: repo-url, build.jl), Conan (`conan.lock`: recipe revisions,
+  conanfile.py), vcpkg (`vcpkg.json`: baseline, custom registries), CRAN
+  (`renv.lock`/`DESCRIPTION`: non-CRAN sources, Remotes), Deno (`deno.lock`: http,
+  missing integrity), CocoaPods (`Podfile.lock`: external sources, checksums).
 - **github / url / local:** fetch the exact source (clone at SHA / download by
   sha256 / copy on-disk) and audit it as-is — no registry closure, so the closure
-  is reported uncertified unless a lockfile is committed.
+  is reported uncertified unless a lockfile is committed. **Native build detection**
+  (Makefile/configure/CMake/binding.gyp/PHP config.m4/nginx config) flags build-time
+  code execution for C/C++, nginx modules and native extensions.
 
 Resolution can still *attempt* to run code (npm is safe with `--ignore-scripts`,
 but sdists/`build.rs`/MSBuild targets are riskier), so it only ever runs inside a

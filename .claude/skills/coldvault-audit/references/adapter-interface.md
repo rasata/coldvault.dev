@@ -2,10 +2,16 @@
 
 `fetch-target.sh` and `provenance-check.py` are ecosystem-agnostic. Supporting a
 new stack = adding one adapter; no other file changes. Implemented today:
-package managers **npm, pypi, go, cargo, nuget, maven** (full closure + integrity)
-and source modes **github, url, local** (exact source, no registry closure). A
-further stack (e.g. a dedicated gradle, composer, or rubygems adapter) is just one
-more file registered in `COLDVAULT_ECOSYSTEMS`.
+- **Direct resolution** (full closure + integrity): npm, pypi, go, cargo, nuget,
+  maven, composer, pub, rubygems, swift.
+- **Source-audited** (coordinate resolve guides to `local:`/`github:`; analyzer
+  parses the committed lockfile): julia, conan, vcpkg, cran, deno, cocoapods.
+- **Source modes**: github, url, local — plus native build-system detection
+  (Makefile/configure/CMake/binding.gyp/PHP config.m4/nginx config) for C/C++,
+  nginx modules and native extensions.
+
+A further stack (e.g. hex/Elixir, pub alternatives, a dedicated gradle adapter) is
+one more file registered in `COLDVAULT_ECOSYSTEMS` + one `analyze_<eco>`.
 
 ## Where
 

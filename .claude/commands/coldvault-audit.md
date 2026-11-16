@@ -17,7 +17,10 @@ Coordinate (optional): $ARGUMENTS
   user's coldvault fork via GitHub Actions (default) or Codespaces, as the skill
   describes. Default synthesis runs in this session after `gh run download`.
 
-Ecosystems: **npm, PyPI, Go, Cargo, NuGet, Maven** resolve a full integrity-pinned
-closure (the matching toolchain must be present in the container — npm/pip are
-baked in, the rest install via `.devcontainer/install-optional-tools.sh`).
-**github/url/local** audit the exact source but do not resolve a registry closure.
+Ecosystems — direct resolution (full integrity-pinned closure): **npm (TS), PyPI,
+Go, Cargo, NuGet, Maven, Composer (PHP), pub (Dart), RubyGems, SwiftPM**. Source-
+audited via `local:`/`github:` (resolution would run recipe/build code): **Julia,
+Conan, vcpkg (C/C++), CRAN (R), Deno, CocoaPods**. Generic **github/url/local**
+modes audit exact source + detect native build systems (C/C++, nginx modules, PHP
+native extensions). Toolchains: npm/pip/go are baked in; the rest install via
+`.devcontainer/install-optional-tools.sh`.

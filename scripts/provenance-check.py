@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -35,6 +36,22 @@ from typing import Any, Dict, List, Optional
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+
+
+def _find_one(target: Path, name: str) -> Optional[Path]:
+    p = target / name
+    if p.exists():
+        return p
+    for hit in target.rglob(name):
+        return hit
+    return None
+
+
 def load_json(path: Path) -> Optional[Any]:
     try:
         with path.open("r", encoding="utf-8") as fh:
@@ -440,32 +457,494 @@ def analyze_maven(target: Path) -> Dict[str, Any]:
     return {"findings": findings, "signals": signals}
 
 
+def _missing_lock_finding(lockfile: str, eco_label: str) -> Dict[str, Any]:
+    return finding(
+        file=f"target/{lockfile}", line=1, severity="HIGH", category="provenance",
+        description=f"No {lockfile} in the frozen closure — the {eco_label} dependency set "
+                    f"could not be certified.",
+        exploit_scenario="Without a lockfile the resolved versions are not pinned; a later install "
+                         "could pull different, malicious code.",
+        recommendation=f"Audit a project that commits {lockfile} (local:/github:), or re-run fetch-target.sh.",
+        confidence=0.85)
+
+
+# --------------------------------------------------------------------------- #
+# Composer (PHP) analyzer
+# --------------------------------------------------------------------------- #
+def analyze_composer(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"packages": 0, "non_registry": [], "missing_shasum": [],
+                               "plugins": [], "scripts": [], "custom_repos": False}
+    lockp = _find_one(target, "composer.lock")
+    lock = load_json(lockp) if lockp else None
+    if lock is None:
+        findings.append(_missing_lock_finding("composer.lock", "PHP/Composer"))
+    else:
+        for key in ("packages", "packages-dev"):
+            for pkg in (lock.get(key) or []):
+                if not isinstance(pkg, dict):
+                    continue
+                signals["packages"] += 1
+                name = pkg.get("name", "?")
+                dist = pkg.get("dist") or {}
+                src = pkg.get("source") or {}
+                if dist.get("type") in ("git", "svn", "hg") or \
+                        (src.get("type") in ("git", "svn", "hg") and not dist.get("shasum")):
+                    signals["non_registry"].append(name)
+                    findings.append(finding(
+                        file="target/composer.lock", line=1, severity="HIGH",
+                        category="supply_chain_non_registry_dependency",
+                        description=f"Composer package '{name}' installs from a VCS source, bypassing registry integrity.",
+                        exploit_scenario="A VCS dependency can serve code differing from any published, hashed release.",
+                        recommendation="Pin to a Packagist release with a dist shasum.", confidence=0.82))
+                elif dist.get("type") and not dist.get("shasum"):
+                    signals["missing_shasum"].append(name)
+                    findings.append(finding(
+                        file="target/composer.lock", line=1, severity="MEDIUM",
+                        category="supply_chain_missing_integrity",
+                        description=f"Composer package '{name}' has no dist.shasum in the lock.",
+                        exploit_scenario="Without a shasum a tampered archive is undetectable at install.",
+                        recommendation="Use a release that carries a dist checksum.", confidence=0.72))
+                if pkg.get("type") == "composer-plugin":
+                    signals["plugins"].append(name)
+                    findings.append(finding(
+                        file="target/composer.lock", line=1, severity="MEDIUM",
+                        category="supply_chain_plugin",
+                        description=f"'{name}' is a composer-plugin — it executes code during composer operations.",
+                        exploit_scenario="Composer plugins run with developer privileges on install/update.",
+                        recommendation="Review the plugin; install with --no-plugins.", confidence=0.74))
+    cjp = _find_one(target, "composer.json")
+    cj = load_json(cjp) if cjp else {}
+    cj = cj if isinstance(cj, dict) else {}
+    hooks = [k for k in (cj.get("scripts") or {}) if k.startswith(("pre-", "post-"))]
+    if hooks:
+        signals["scripts"] = hooks
+        findings.append(finding(
+            file="target/composer.json", line=1, severity="MEDIUM",
+            category="supply_chain_install_hook",
+            description=f"composer.json defines lifecycle scripts: {', '.join(hooks)}.",
+            exploit_scenario="Composer scripts run arbitrary code on install/update.",
+            recommendation="Review each script; install with --no-scripts.", confidence=0.76))
+    if cj.get("repositories"):
+        signals["custom_repos"] = True
+        findings.append(finding(
+            file="target/composer.json", line=1, severity="HIGH",
+            category="supply_chain_custom_registry",
+            description="composer.json declares custom repositories (VCS/path/url), overriding Packagist.",
+            exploit_scenario="A custom repo can shadow a trusted package name with attacker code — the mirage.",
+            recommendation="Verify each repository is trusted and pinned.", confidence=0.78))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Pub (Dart) analyzer — pubspec.lock is YAML; parse line-wise (no yaml dep).
+# --------------------------------------------------------------------------- #
+def analyze_pub(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"git_or_path": []}
+    lockp = _find_one(target, "pubspec.lock")
+    if not lockp:
+        findings.append(_missing_lock_finding("pubspec.lock", "Dart/pub"))
+        return {"findings": findings, "signals": signals}
+    cur = None
+    for line in _read_text(lockp).splitlines():
+        m = re.match(r"^  ([A-Za-z0-9_]+):\s*$", line)
+        if m:
+            cur = m.group(1)
+            continue
+        s = line.strip()
+        if s.startswith("source:") and cur:
+            srctype = s.split(":", 1)[1].strip()
+            if srctype in ("git", "path"):
+                signals["git_or_path"].append((cur, srctype))
+                findings.append(finding(
+                    file="target/pubspec.lock", line=1, severity="HIGH",
+                    category="supply_chain_non_registry_dependency",
+                    description=f"Dart package '{cur}' uses a {srctype} source, bypassing pub.dev integrity.",
+                    exploit_scenario="A git/path dependency can serve code differing from any hashed pub.dev release.",
+                    recommendation="Pin to a pub.dev hosted version with a sha256.", confidence=0.8))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# RubyGems (Bundler) analyzer — Gemfile.lock is a custom text format.
+# --------------------------------------------------------------------------- #
+def analyze_rubygems(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"git_sources": False, "non_default_remote": [], "has_checksums": False}
+    lockp = _find_one(target, "Gemfile.lock")
+    if not lockp:
+        findings.append(_missing_lock_finding("Gemfile.lock", "Ruby/Bundler"))
+        return {"findings": findings, "signals": signals}
+    txt = _read_text(lockp)
+    if re.search(r"(^|\n)GIT\n", txt):
+        signals["git_sources"] = True
+        findings.append(finding(
+            file="target/Gemfile.lock", line=1, severity="HIGH",
+            category="supply_chain_non_registry_dependency",
+            description="Gemfile.lock contains a GIT source, bypassing rubygems.org integrity.",
+            exploit_scenario="A git gem can serve code differing from any published, checksummed gem.",
+            recommendation="Pin to a rubygems.org release.", confidence=0.82))
+    for m in re.finditer(r"^  remote:\s*(\S+)", txt, re.M):
+        url = m.group(1)
+        if "rubygems.org" not in url:
+            signals["non_default_remote"].append(url)
+            findings.append(finding(
+                file="target/Gemfile.lock", line=1, severity="HIGH",
+                category="supply_chain_custom_registry",
+                description=f"Gemfile.lock uses a non-default gem remote: {url}",
+                exploit_scenario="A custom remote can shadow a trusted gem name with attacker code.",
+                recommendation="Use rubygems.org or verify the mirror is trusted.", confidence=0.78))
+    signals["has_checksums"] = "\nCHECKSUMS\n" in txt
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Swift (SwiftPM) analyzer — Package.resolved (JSON v1/v2). All git-based.
+# --------------------------------------------------------------------------- #
+def analyze_swift(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"pins": 0, "branch_pins": []}
+    rp = _find_one(target, "Package.resolved")
+    data = load_json(rp) if rp else None
+    if data is None:
+        findings.append(_missing_lock_finding("Package.resolved", "Swift/SwiftPM"))
+        return {"findings": findings, "signals": signals}
+    pins = data.get("pins") or (data.get("object") or {}).get("pins") or []
+    for p in pins:
+        if not isinstance(p, dict):
+            continue
+        signals["pins"] += 1
+        state = p.get("state") or {}
+        name = p.get("identity") or p.get("package") or "?"
+        if not state.get("revision"):
+            signals["branch_pins"].append(name)
+            findings.append(finding(
+                file="target/Package.resolved", line=1, severity="HIGH",
+                category="supply_chain_mutable_version",
+                description=f"SwiftPM dependency '{name}' is pinned to a branch, not a commit revision.",
+                exploit_scenario="A branch pin resolves to whatever the branch points at — mutable code.",
+                recommendation="Pin to an exact version/commit (Package.resolved revision).", confidence=0.8))
+    findings.append(finding(
+        file="target/Package.swift", line=1, severity="MEDIUM",
+        category="supply_chain_manifest_execution",
+        description="SwiftPM evaluates each dependency's Package.swift (Swift code) during resolution.",
+        exploit_scenario="A malicious package manifest runs code at resolve time, before any build.",
+        recommendation="Review dependency manifests; resolve only in an isolated container (as coldvault does).",
+        confidence=0.7))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Julia (Pkg) analyzer — Manifest.toml (TOML; parsed line-wise).
+# --------------------------------------------------------------------------- #
+def analyze_julia(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"git_repos": [], "missing_tree_sha": [], "build_jl": 0}
+    mp = _find_one(target, "Manifest.toml")
+    if not mp:
+        findings.append(_missing_lock_finding("Manifest.toml", "Julia/Pkg"))
+        return {"findings": findings, "signals": signals}
+    cur = None
+    have_sha = False
+    for line in _read_text(mp).splitlines():
+        m = re.match(r"^\[\[(?:deps\.)?([A-Za-z0-9_]+)\]\]", line)
+        if m:
+            if cur and not have_sha:
+                signals["missing_tree_sha"].append(cur)
+            cur = m.group(1)
+            have_sha = False
+            continue
+        s = line.strip()
+        if s.startswith("git-tree-sha1"):
+            have_sha = True
+        if s.startswith("repo-url"):
+            signals["git_repos"].append(cur)
+            findings.append(finding(
+                file="target/Manifest.toml", line=1, severity="HIGH",
+                category="supply_chain_non_registry_dependency",
+                description=f"Julia package '{cur}' resolves from a git repo-url (unregistered), bypassing registry integrity.",
+                exploit_scenario="An unregistered git dependency can serve code differing from any registered release.",
+                recommendation="Prefer registered packages with a git-tree-sha1 pin.", confidence=0.8))
+    for bj in target.rglob("build.jl"):
+        signals["build_jl"] += 1
+    if signals["build_jl"]:
+        findings.append(finding(
+            file="target/", line=1, severity="MEDIUM", category="supply_chain_build_hook",
+            description=f"{signals['build_jl']} dependency build.jl script(s) present — code runs on Pkg.build.",
+            exploit_scenario="build.jl executes arbitrary Julia at install/build time.",
+            recommendation="Review each build.jl before building the environment.", confidence=0.74))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Conan (C/C++) analyzer — conan.lock (JSON) + conanfile.py presence.
+# --------------------------------------------------------------------------- #
+def analyze_conan(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"requires": 0, "missing_revision": [], "conanfile_py": False}
+    lp = _find_one(target, "conan.lock")
+    lock = load_json(lp) if lp else None
+    if lock is None:
+        findings.append(_missing_lock_finding("conan.lock", "C/C++ Conan"))
+    else:
+        reqs = lock.get("requires") or []
+        for r in reqs:
+            signals["requires"] += 1
+            if isinstance(r, str) and "#" not in r:
+                signals["missing_revision"].append(r)
+                findings.append(finding(
+                    file="target/conan.lock", line=1, severity="MEDIUM",
+                    category="supply_chain_missing_integrity",
+                    description=f"Conan requirement '{r}' has no recipe revision (#...), so it is not fully pinned.",
+                    exploit_scenario="Without a recipe revision the resolved recipe can change under the same version.",
+                    recommendation="Pin requirements with a recipe revision.", confidence=0.72))
+    if _find_one(target, "conanfile.py"):
+        signals["conanfile_py"] = True
+        findings.append(finding(
+            file="target/conanfile.py", line=1, severity="MEDIUM",
+            category="supply_chain_code_recipe",
+            description="A conanfile.py recipe is present — Python code runs during Conan graph/build operations.",
+            exploit_scenario="Recipe code executes at resolve/build with developer privileges.",
+            recommendation="Review the conanfile.py; prefer conanfile.txt where possible.", confidence=0.72))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# vcpkg (C/C++) analyzer — vcpkg.json + vcpkg-configuration.json.
+# --------------------------------------------------------------------------- #
+def analyze_vcpkg(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"has_baseline": False, "custom_registries": False, "overrides": False}
+    vp = _find_one(target, "vcpkg.json")
+    vj = load_json(vp) if vp else None
+    if vj is None:
+        findings.append(_missing_lock_finding("vcpkg.json", "C/C++ vcpkg"))
+        return {"findings": findings, "signals": signals}
+    signals["has_baseline"] = bool(vj.get("builtin-baseline"))
+    cfgp = _find_one(target, "vcpkg-configuration.json")
+    cfg = load_json(cfgp) if cfgp else {}
+    cfg = cfg if isinstance(cfg, dict) else {}
+    if not signals["has_baseline"] and not cfg.get("default-registry"):
+        findings.append(finding(
+            file="target/vcpkg.json", line=1, severity="MEDIUM", category="supply_chain_mutable_version",
+            description="vcpkg manifest has no builtin-baseline — port versions are not pinned.",
+            exploit_scenario="Without a baseline, ports resolve to whatever the registry currently serves.",
+            recommendation="Set a builtin-baseline to pin the port set.", confidence=0.72))
+    if cfg.get("registries"):
+        signals["custom_registries"] = True
+        findings.append(finding(
+            file="target/vcpkg-configuration.json", line=1, severity="HIGH",
+            category="supply_chain_custom_registry",
+            description="vcpkg-configuration.json declares custom registries, overriding the default.",
+            exploit_scenario="A custom registry can shadow a trusted port name with attacker code.",
+            recommendation="Verify each registry and its baseline are trusted.", confidence=0.76))
+    if vj.get("overrides"):
+        signals["overrides"] = True
+    findings.append(finding(
+        file="target/vcpkg.json", line=1, severity="MEDIUM", category="supply_chain_build_from_source",
+        description="vcpkg builds ports from source; portfiles run CMake/shell at install time.",
+        exploit_scenario="A malicious portfile executes build-time code.",
+        recommendation="Review portfiles; build only in an isolated container.", confidence=0.7))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# CRAN (R) analyzer — renv.lock (JSON) and/or DESCRIPTION (Remotes:).
+# --------------------------------------------------------------------------- #
+def analyze_cran(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"packages": 0, "non_cran": [], "missing_hash": []}
+    lp = _find_one(target, "renv.lock")
+    lock = load_json(lp) if lp else None
+    if lock is not None:
+        for name, meta in (lock.get("Packages") or {}).items():
+            if not isinstance(meta, dict):
+                continue
+            signals["packages"] += 1
+            source = meta.get("Source")
+            if source and source not in ("Repository", "CRAN", "Bioconductor"):
+                signals["non_cran"].append(name)
+                findings.append(finding(
+                    file="target/renv.lock", line=1, severity="HIGH",
+                    category="supply_chain_non_registry_dependency",
+                    description=f"R package '{name}' has Source='{source}' (not a CRAN/Bioconductor repository).",
+                    exploit_scenario="A GitHub/remote R package can serve code differing from any CRAN release.",
+                    recommendation="Install from CRAN with a recorded Hash, or review the remote revision.",
+                    confidence=0.8))
+            elif not meta.get("Hash"):
+                signals["missing_hash"].append(name)
+    desc = _find_one(target, "DESCRIPTION")
+    if desc and re.search(r"^Remotes:", _read_text(desc), re.M):
+        findings.append(finding(
+            file="target/DESCRIPTION", line=1, severity="HIGH",
+            category="supply_chain_non_registry_dependency",
+            description="DESCRIPTION declares a 'Remotes:' field — dependencies install from non-CRAN sources.",
+            exploit_scenario="Remotes pull packages straight from GitHub/URLs, bypassing CRAN review.",
+            recommendation="Prefer CRAN dependencies; review each remote.", confidence=0.78))
+    if lock is None and not desc:
+        findings.append(_missing_lock_finding("renv.lock", "R/CRAN"))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Deno (TS/JS) analyzer — deno.lock (JSON v3/v4).
+# --------------------------------------------------------------------------- #
+def analyze_deno(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"remote": 0, "http_insecure": [], "missing_integrity": 0}
+    lp = _find_one(target, "deno.lock")
+    lock = load_json(lp) if lp else None
+    if lock is None:
+        findings.append(_missing_lock_finding("deno.lock", "Deno"))
+        return {"findings": findings, "signals": signals}
+    remote = lock.get("remote") or {}
+    for url, h in remote.items():
+        signals["remote"] += 1
+        if isinstance(url, str) and url.startswith("http://"):
+            signals["http_insecure"].append(url)
+        if not h:
+            signals["missing_integrity"] += 1
+    if signals["http_insecure"]:
+        findings.append(finding(
+            file="target/deno.lock", line=1, severity="HIGH",
+            category="supply_chain_insecure_transport",
+            description=f"{len(signals['http_insecure'])} Deno remote dependency URL(s) use plaintext http://.",
+            exploit_scenario="An http dependency can be MITM-swapped for attacker code.",
+            recommendation="Use https:// (or pinned jsr:/npm:) sources only.", confidence=0.8))
+    if signals["missing_integrity"]:
+        findings.append(finding(
+            file="target/deno.lock", line=1, severity="MEDIUM",
+            category="supply_chain_missing_integrity",
+            description=f"{signals['missing_integrity']} Deno remote dependency(ies) have no integrity hash.",
+            exploit_scenario="Without an integrity hash a tampered module is undetectable.",
+            recommendation="Regenerate deno.lock so every remote carries a hash.", confidence=0.73))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# CocoaPods analyzer — Podfile.lock (YAML-ish text).
+# --------------------------------------------------------------------------- #
+def analyze_cocoapods(target: Path) -> Dict[str, Any]:
+    findings: List[Dict[str, Any]] = []
+    signals: Dict[str, Any] = {"external_sources": False, "has_checksums": False}
+    lp = _find_one(target, "Podfile.lock")
+    if not lp:
+        findings.append(_missing_lock_finding("Podfile.lock", "CocoaPods"))
+        return {"findings": findings, "signals": signals}
+    txt = _read_text(lp)
+    if "EXTERNAL SOURCES:" in txt and re.search(r":git:|:path:|:podspec:", txt):
+        signals["external_sources"] = True
+        findings.append(finding(
+            file="target/Podfile.lock", line=1, severity="HIGH",
+            category="supply_chain_non_registry_dependency",
+            description="Podfile.lock declares EXTERNAL SOURCES (:git/:path/:podspec), bypassing the Specs integrity.",
+            exploit_scenario="An external git/path pod can serve code differing from any checksummed spec.",
+            recommendation="Pin pods to the CocoaPods Specs repo with a SPEC CHECKSUM.", confidence=0.8))
+    signals["has_checksums"] = "SPEC CHECKSUMS:" in txt
+    if not signals["has_checksums"]:
+        findings.append(finding(
+            file="target/Podfile.lock", line=1, severity="MEDIUM",
+            category="supply_chain_missing_integrity",
+            description="Podfile.lock has no SPEC CHECKSUMS section.",
+            exploit_scenario="Without spec checksums, tampered pods are undetectable.",
+            recommendation="Regenerate the lock with a modern CocoaPods.", confidence=0.7))
+    return {"findings": findings, "signals": signals}
+
+
+# --------------------------------------------------------------------------- #
+# Native build-system detection (for C/C++, nginx modules, PHP C extensions,
+# and any source tree audited via github/url/local). These files execute code at
+# build time — a real supply-chain surface for compiled dependencies.
+# --------------------------------------------------------------------------- #
+NATIVE_BUILD_FILES = {
+    "Makefile": "make", "makefile": "make", "GNUmakefile": "make",
+    "configure": "autotools", "configure.ac": "autotools", "configure.in": "autotools",
+    "CMakeLists.txt": "cmake", "meson.build": "meson", "SConstruct": "scons",
+    "wscript": "waf", "binding.gyp": "node-gyp", "Rakefile": "rake", "build.sh": "shell",
+    "config.m4": "php-extension", "config.w32": "php-extension",
+}
+
+
+def detect_native_build(target: Path) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    found: Dict[str, str] = {}
+    for p in target.rglob("*"):
+        if not p.is_file():
+            continue
+        kind = NATIVE_BUILD_FILES.get(p.name)
+        if kind:
+            found[os.path.relpath(p, target.parent)] = kind
+        # nginx dynamic module marker: a top-level 'config' file referencing ngx_addon_name
+        if p.name == "config":
+            head = _read_text(p)[:2000]
+            if "ngx_addon_name" in head or "ngx_module" in head:
+                found[os.path.relpath(p, target.parent)] = "nginx-module"
+    if found:
+        kinds = sorted(set(found.values()))
+        example = next(iter(found))
+        findings.append(finding(
+            file=example, line=1, severity="MEDIUM", category="build_time_code_execution",
+            description=f"Native build script(s) present ({', '.join(kinds)}) — compiling this "
+                        f"dependency executes build-time code.",
+            exploit_scenario="A malicious Makefile/configure/CMake/portfile runs arbitrary commands "
+                             "during the build, before any code is 'used'.",
+            recommendation="Review the build scripts; build only in a disposable, network-restricted container.",
+            confidence=0.72))
+    return findings
+
+
 # --------------------------------------------------------------------------- #
 # Source-based ecosystems (github / url / local): detect inner stack, delegate,
 # and flag that the dependency closure is not registry-certified.
 # --------------------------------------------------------------------------- #
+def _has(target: Path, *names: str) -> bool:
+    return any((target / n).exists() or _find_one(target, n) is not None for n in names)
+
+
 def detect_package_ecosystem(target: Path) -> Optional[str]:
-    if (target / "package-lock.json").exists() or (target / "package.json").exists():
+    if _has(target, "package-lock.json", "package.json"):
         return "npm"
     wheels = target / "wheels"
-    if (target / "requirements.lock").exists() or (target / "pyproject.toml").exists() \
-            or any(target.rglob("setup.py")) \
+    if _has(target, "requirements.lock", "pyproject.toml") or any(target.rglob("setup.py")) \
             or (wheels.is_dir() and any(wheels.iterdir())):
         return "pypi"
-    if (target / "go.mod").exists() or (target / "go.sum").exists():
+    if _has(target, "go.mod", "go.sum"):
         return "go"
-    if (target / "Cargo.lock").exists() or (target / "Cargo.toml").exists():
+    if _has(target, "Cargo.lock", "Cargo.toml"):
         return "cargo"
-    if any(target.rglob("packages.lock.json")) or any(target.rglob("*.csproj")):
+    if _has(target, "packages.lock.json") or any(target.rglob("*.csproj")):
         return "nuget"
-    if (target / "pom.xml").exists() or (target / "dependency-tree.txt").exists() or any(target.rglob("pom.xml")):
+    if _has(target, "pom.xml", "dependency-tree.txt"):
         return "maven"
+    if _has(target, "composer.lock", "composer.json"):
+        return "composer"
+    if _has(target, "pubspec.lock", "pubspec.yaml"):
+        return "pub"
+    if _has(target, "Gemfile.lock", "Gemfile"):
+        return "rubygems"
+    if _has(target, "Package.resolved", "Package.swift"):
+        return "swift"
+    if _has(target, "Manifest.toml", "Project.toml"):
+        return "julia"
+    if _has(target, "conan.lock", "conanfile.py", "conanfile.txt"):
+        return "conan"
+    if _has(target, "vcpkg.json"):
+        return "vcpkg"
+    if _has(target, "deno.lock", "deno.json"):
+        return "deno"
+    if _has(target, "renv.lock") or (_find_one(target, "DESCRIPTION") is not None):
+        return "cran"
+    if _has(target, "Podfile.lock"):
+        return "cocoapods"
     return None
 
 
 LOCKFILES = ("package-lock.json", "pnpm-lock.yaml", "yarn.lock", "requirements.lock",
              "poetry.lock", "Pipfile.lock", "go.sum", "Cargo.lock", "packages.lock.json",
-             "gradle.lockfile")
+             "gradle.lockfile", "composer.lock", "pubspec.lock", "Gemfile.lock",
+             "Package.resolved", "Manifest.toml", "conan.lock", "vcpkg.json",
+             "deno.lock", "renv.lock", "Podfile.lock")
 
 
 def analyze_source(target: Path, source_eco: str) -> Dict[str, Any]:
@@ -493,6 +972,12 @@ def analyze_source(target: Path, source_eco: str) -> Dict[str, Any]:
         sub = _PACKAGE_ANALYZERS[inner](target)
         findings.extend(sub["findings"])
         signals["inner"] = sub["signals"]
+
+    # Native build systems (C/C++, nginx modules, PHP C extensions, …) execute code
+    # at build time regardless of the package ecosystem — always check source trees.
+    native = detect_native_build(target)
+    findings.extend(native)
+    signals["native_build"] = bool(native)
     return {"findings": findings, "signals": signals}
 
 
@@ -503,6 +988,16 @@ _PACKAGE_ANALYZERS = {
     "cargo": analyze_cargo,
     "nuget": analyze_nuget,
     "maven": analyze_maven,
+    "composer": analyze_composer,
+    "pub": analyze_pub,
+    "rubygems": analyze_rubygems,
+    "swift": analyze_swift,
+    "julia": analyze_julia,
+    "conan": analyze_conan,
+    "vcpkg": analyze_vcpkg,
+    "cran": analyze_cran,
+    "deno": analyze_deno,
+    "cocoapods": analyze_cocoapods,
 }
 
 ANALYZERS = {

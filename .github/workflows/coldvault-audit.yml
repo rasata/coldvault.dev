@@ -84,10 +84,15 @@ jobs:
             eco="${COLDVAULT_SOURCE%%:*}"
             echo "::group::install toolchain for '$eco' if needed"
             case "$eco" in
-              cargo) bash .devcontainer/install-optional-tools.sh rust  ; [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env" || true ;;
-              maven) bash .devcontainer/install-optional-tools.sh java  ;;
-              nuget) bash .devcontainer/install-optional-tools.sh dotnet; export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$PATH" ;;
-              *)     echo "npm/pypi/go/github/url/local use the base image toolchain." ;;
+              cargo)    bash .devcontainer/install-optional-tools.sh rust  ; [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env" || true ;;
+              maven)    bash .devcontainer/install-optional-tools.sh java  ;;
+              nuget)    bash .devcontainer/install-optional-tools.sh dotnet; export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$PATH" ;;
+              composer) bash .devcontainer/install-optional-tools.sh php   ;;
+              rubygems) bash .devcontainer/install-optional-tools.sh ruby  ;;
+              pub)      bash .devcontainer/install-optional-tools.sh dart  ;;
+              swift)    echo "Swift toolchain must be present in the image for swift: resolution." ;;
+              julia|conan|vcpkg|cran|deno|cocoapods) echo "'$eco' is source-audited: use local:/github: (no coordinate resolution)." ;;
+              *)        echo "npm/pypi/go/github/url/local use the base image toolchain." ;;
             esac
             echo "::endgroup::"
             echo "::group::fetch-target (resolve closure, scripts OFF)"

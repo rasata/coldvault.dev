@@ -195,8 +195,10 @@ All skills under `.claude/skills/` are eligible. Key ones:
   (Actions/Codespaces), certify "scanned == executed", then run this pipeline.
   Entry points: `scripts/fetch-target.sh`, `scripts/provenance-check.py`,
   `.github/workflows/coldvault-audit.yml`, command `/coldvault-audit`,
-  ecosystem adapters in `scripts/adapters/` (npm, PyPI, Go, Cargo, NuGet, Maven +
-  source modes github/url/local).
+  ecosystem adapters in `scripts/adapters/` — direct resolution: npm, PyPI, Go,
+  Cargo, NuGet, Maven, Composer, pub, RubyGems, SwiftPM; source-audited: Julia,
+  Conan, vcpkg, CRAN, Deno, CocoaPods; source modes: github/url/local (+ native
+  build detection for C/C++, nginx modules, PHP native extensions).
 
 ## 7. Output & cleanup
 

@@ -31,25 +31,45 @@ One-command, GitHub-driven audit of a library you are about to depend on.
 Ask the user for an **explicit, pinned coordinate** — do not guess. The format is
 `<ecosystem>:<spec>`:
 
-| Intent                         | Coordinate example                          | Resolver needs (in container) |
-|--------------------------------|---------------------------------------------|-------------------------------|
-| npm package                    | `npm:lodash@4.17.21`                          | `npm` (in base image)         |
-| PyPI package                   | `pypi:requests==2.31.0`                       | `pip` (wheels only)           |
-| Go module                      | `go:github.com/pkg/errors@v0.9.1`            | `go` toolchain                |
-| Rust crate                     | `cargo:serde@1.0.197`                         | `cargo`                       |
-| .NET / NuGet package           | `nuget:Newtonsoft.Json@13.0.3`               | `dotnet` SDK                  |
-| Java / Maven artifact          | `maven:com.google.guava:guava:33.0.0-jre`    | `mvn`                         |
-| A GitHub repo at a commit      | `github:owner/repo@<sha>`                     | `git` (source only)           |
-| A raw tarball/sdist URL        | `url:https://…/pkg.tgz`                        | `curl`/`unzip` (source only)  |
-| A library already in a project | `local:./path/to/lib`                         | — (on-disk state)             |
+**A. Direct coordinate resolution** (full integrity-pinned closure, scripts OFF):
 
-All ecosystems are implemented. Package ecosystems (npm/pypi/go/cargo/nuget/maven)
-resolve the full closure with integrity; **the matching toolchain must be present
-in the container** — npm/pip are in the base image, the rest install via
-`.devcontainer/install-optional-tools.sh` (adapters fail cleanly if a toolchain is
-missing). Source ecosystems (github/url/local) audit the exact source but do **not**
-resolve a registry closure, so they report the closure as uncertified unless a
-lockfile is committed — recommend also running the published-package coordinate.
+| Ecosystem | Coordinate example | Resolver needs (in container) |
+|---|---|---|
+| npm (incl. TypeScript) | `npm:lodash@4.17.21` | `npm` (base image) |
+| PyPI (Python) | `pypi:requests==2.31.0` | `pip` (wheels only) |
+| Go | `go:github.com/pkg/errors@v0.9.1` | `go` (base image) |
+| Rust / Cargo | `cargo:serde@1.0.197` | `cargo` (group `rust`) |
+| .NET / NuGet | `nuget:Newtonsoft.Json@13.0.3` | `dotnet` (group `dotnet`) |
+| Java / Maven | `maven:com.google.guava:guava:33.0.0-jre` | `mvn` (group `java`) |
+| PHP / Composer | `composer:monolog/monolog@3.5.0` | `composer` (group `php`) |
+| Dart / pub | `pub:http@1.2.0` | `dart` (group `dart`) |
+| Ruby / RubyGems | `rubygems:rails@7.1.0` | `bundler` (group `ruby`) |
+| Swift / SwiftPM | `swift:apple/swift-argument-parser@1.3.0` | `swift` |
+
+**B. Source-audited** (resolution would run recipe/build code, so audit the
+committed lockfile via `local:`/`github:` — the analyzer parses it without
+executing anything): **Julia** (`Manifest.toml`), **Conan** & **vcpkg** (C/C++),
+**R/CRAN** (`renv.lock`/`DESCRIPTION`), **Deno** (`deno.lock`), **CocoaPods**
+(`Podfile.lock`). Their coordinate form prints guidance pointing you to `local:`/`github:`.
+
+**C. Generic source modes** (exact source, no registry closure):
+
+| Intent | Coordinate example | Resolver needs |
+|---|---|---|
+| A GitHub repo at a commit | `github:owner/repo@<sha>` | `git` |
+| A raw tarball/sdist/archive URL | `url:https://…/pkg.tgz` | `curl`/`unzip` |
+| A library already in a project | `local:./path/to/lib` | — |
+
+For source modes, coldvault also runs **native build-system detection** (Makefile,
+configure, CMake, `binding.gyp`, `config.m4`/`config.w32` for PHP C extensions,
+nginx `config` module files, …) and flags build-time code execution — so C/C++
+libraries, **nginx modules** and **PHP native extensions** are covered via source.
+
+The matching toolchain must be present in the container — npm/pip/go are in the base
+image, the rest install via `.devcontainer/install-optional-tools.sh`; an adapter
+fails cleanly if its toolchain is missing. Source modes report the closure as
+uncertified unless a lockfile is committed — recommend also running the published
+coordinate.
 
 Insist on an exact version / commit SHA — a floating range is itself a provenance
 risk (what resolves tomorrow may differ). If the user only names a package, offer

@@ -105,14 +105,20 @@ and flags each divergence (non-registry deps, `overrides`/`resolutions`, install
 hooks, missing integrity). See
 [`.claude/skills/coldvault-audit/`](./.claude/skills/coldvault-audit/).
 
-**Ecosystems.** Package managers with full integrity-pinned closure resolution:
-**npm, PyPI, Go, Cargo (Rust), NuGet (.NET), Maven (Java)** — npm/pip ship in the
-base image, the rest install via `.devcontainer/install-optional-tools.sh` (an
-adapter fails cleanly if its toolchain is absent). Source modes **github** (clone
-at an exact SHA), **url** (tarball/sdist) and **local** (on-disk library) audit the
-exact source without a registry closure, flagging it as uncertified unless a
-lockfile is committed. All sit behind a pluggable adapter interface
-(`scripts/adapters/`, see
+**Ecosystems.** Direct coordinate resolution with a full integrity-pinned closure:
+**npm** (incl. TypeScript), **PyPI**, **Go**, **Cargo** (Rust), **NuGet** (.NET),
+**Maven** (Java), **Composer** (PHP), **pub** (Dart), **RubyGems**, **SwiftPM**.
+Source-audited (their resolution would run recipe/build code, so you point `local:`/
+`github:` at a committed lockfile the analyzer reads without executing anything):
+**Julia**, **Conan** & **vcpkg** (C/C++), **CRAN** (R), **Deno**, **CocoaPods**.
+Generic source modes **github** (clone at an exact SHA), **url** (tarball/sdist/
+archive) and **local** (on-disk library) audit the exact source; coldvault also
+runs **native build-system detection** (Makefile, configure, CMake, `binding.gyp`,
+PHP `config.m4`/`config.w32`, nginx `config` modules…), so C/C++ libraries,
+**nginx modules** and **PHP native extensions** are covered via source. npm/pip/go
+ship in the base image; other toolchains install via
+`.devcontainer/install-optional-tools.sh` (an adapter fails cleanly if its toolchain
+is absent). All sit behind a pluggable adapter interface (`scripts/adapters/`, see
 [`adapter-interface.md`](./.claude/skills/coldvault-audit/references/adapter-interface.md))
 — adding another stack is a single new adapter file.
 
@@ -292,7 +298,7 @@ flowchart LR
 │   ├── audit-all.sh
 │   ├── fetch-target.sh        # Resolve + freeze a library closure into target/ (container-only)
 │   ├── provenance-check.py    # Certify "scanned == executed" → reports/00-provenance.json
-│   ├── adapters/              # One file per ecosystem (npm/pypi/go/cargo/nuget/maven + github/url/local)
+│   ├── adapters/              # One file per ecosystem (npm/pypi/go/cargo/nuget/maven/composer/pub/rubygems/swift + julia/conan/vcpkg/cran/deno/cocoapods + github/url/local)
 │   ├── scan-secrets.sh
 │   ├── scan-deps.sh
 │   ├── scan-sast.sh

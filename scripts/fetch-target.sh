@@ -55,9 +55,10 @@ main() {
   fi
   mkdir -p "$TARGET_DIR"
 
-  local staging
-  staging="$(mktemp -d "${TMPDIR:-/tmp}/coldvault-staging.XXXXXX")"
-  trap 'rm -rf "$staging"' EXIT
+  # Global (not local) so the EXIT trap can still see it after main() returns.
+  STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/coldvault-staging.XXXXXX")"
+  local staging="$STAGING_DIR"
+  trap 'rm -rf "${STAGING_DIR:-}"' EXIT
 
   log "Resolving closure in staging: $staging"
   "${COORD_ECO}_resolve" "$COORD_SPEC" "$staging"
