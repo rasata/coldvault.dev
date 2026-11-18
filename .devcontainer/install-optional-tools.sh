@@ -21,6 +21,8 @@
 #   rust      — Rust toolchain + cargo-audit, cargo-deny, cargo-geiger,
 #               cargo-outdated, yara-x-cli
 #   java      — default-jdk, maven, gradle
+#   dotnet    — .NET SDK (LTS) → ~/.dotnet  (needed for nuget: closure resolution)
+#   dart      — Dart SDK  (needed for pub: closure resolution)
 #   php       — php-cli, composer, psalm, phpstan, enlightn/security-checker
 #   ruby      — ruby, brakeman, bundler-audit, ruby_audit
 #   cpp       — clang, clang-tools, clang-tidy, cppcheck, flawfinder, splint
@@ -35,7 +37,7 @@ ok()   { printf "  \033[1;32m✓\033[0m %s\n" "$*"; }
 
 GROUPS=("$@")
 if [[ ${#GROUPS[@]} -eq 0 ]]; then
-  GROUPS=(secrets sast sca iac malware rust java php ruby cpp reverse)
+  GROUPS=(secrets sast sca iac malware rust java dotnet dart php ruby cpp reverse)
 fi
 
 # ── runtime environment ────────────────────────────────────────────────────
@@ -272,6 +274,38 @@ install_java() {
   ok "JDK, Maven, Gradle"
 }
 
+install_dotnet() {
+  say "Group: dotnet"
+  if ! command -v dotnet &>/dev/null; then
+    # Non-root install to ~/.dotnet via Microsoft's official script.
+    curl --proto '=https' --tlsv1.2 -sSfL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+    bash /tmp/dotnet-install.sh --channel LTS --install-dir "$HOME/.dotnet"
+    rm -f /tmp/dotnet-install.sh
+    export DOTNET_ROOT="$HOME/.dotnet"
+    export PATH="$HOME/.dotnet:$PATH"
+    ok ".NET SDK (LTS) → ~/.dotnet (add ~/.dotnet to PATH)"
+  else
+    ok "dotnet already present"
+  fi
+}
+
+install_dart() {
+  say "Group: dart"
+  if ! command -v dart &>/dev/null; then
+    # Dart SDK from the official apt repo (Debian/Ubuntu).
+    sudo apt-get update -q
+    sudo apt-get install -y apt-transport-https wget gnupg
+    wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub \
+      | sudo gpg --dearmor -o /usr/share/keyrings/dart.gpg
+    echo "deb [signed-by=/usr/share/keyrings/dart.gpg arch=amd64] https://storage.googleapis.com/download.dartlang.org/linux/debian stable main" \
+      | sudo tee /etc/apt/sources.list.d/dart_stable.list >/dev/null
+    sudo apt-get update -q && sudo apt-get install -y dart || warn "dart install failed"
+    ok "Dart SDK"
+  else
+    ok "dart already present"
+  fi
+}
+
 install_php() {
   say "Group: php"
   apt_install php-cli composer
@@ -332,6 +366,8 @@ for group in "${GROUPS[@]}"; do
     malware)  install_malware  ;;
     rust)     install_rust     ;;
     java)     install_java     ;;
+    dotnet)   install_dotnet   ;;
+    dart)     install_dart     ;;
     php)      install_php      ;;
     ruby)     install_ruby     ;;
     cpp)      install_cpp      ;;
@@ -344,12 +380,14 @@ for group in "${GROUPS[@]}"; do
       install_malware
       install_rust
       install_java
+      install_dotnet
+      install_dart
       install_php
       install_ruby
       install_cpp
       install_reverse
       ;;
-    *) warn "Unknown group: '$group'. Valid groups: secrets sast sca iac malware rust java php ruby cpp reverse all" ;;
+    *) warn "Unknown group: '$group'. Valid groups: secrets sast sca iac malware rust java dotnet dart php ruby cpp reverse all" ;;
   esac
 done
 
